@@ -34,15 +34,16 @@
 #'  (default `"SS"`).
 #' @param assumption Error bound assumption for complementary pairs stability selection,
 #'   one of `"none"`, `"unimodal"`, or `"rconcave"`.
-#' @param stabsel_cores Number of cores for parallel stability selection (default 1).
+#' @param n_cores Number of cores for parallel stability selection (default 1).
 #' @param df_bols Degrees of freedom for linear base learners.
 #' @param df_bbs Degrees of freedom for smooth base learners.
 #' @param intercept Logical, should base learners include an intercept (default FALSE).
 #' @param center Logical, should continuous variables be centered (default TRUE).
 #' @param flexible Logical, if TRUE both linear and
 #'   smooth base learners are included for continuous covariates.
-#' @param reduction Integer factor to reduce `mstop` for stability selection to save
-#'   computational resources.
+#' @param reduction_scaler Number used for scaling of the reduced stabsel mstop using
+#' the formula \code{q \* 5 \* (1/nu) \* reduction}.
+#'
 #' @param remove Logical, if TRUE, removes variables that are singular in any fold.
 #'
 #' @return A `stabsel` object containing selected variables and selection
@@ -79,13 +80,13 @@ CLogitBoostingHEE <- function(
     B = 50,
     sampling_type = "SS",
     assumption = "none",
-    stabsel_cores = 1,
+    n_cores = 1,
     df_bols = 1,
     df_bbs = 1,
     intercept = FALSE,
     center = TRUE,
     flexible = TRUE,
-    reduction = 10,
+    reduction_scaler = 1,
     remove = FALSE
 ) {
 
@@ -139,11 +140,8 @@ CLogitBoostingHEE <- function(
     flexible = flexible,
     include_interactions = FALSE
   )
-  offset.cv <- gen_offset_model(data_proc, offset_formula$form, mstop, nu, strata)
+  offset.cv <- gen_offset_model(data_proc, offset_formula$form, mstop, nu, strata, n_cores)
   offset_pred <- predict(offset.cv, type = "link")
-
-  # The start of stability selection part:
-  mstop_reduced <- max(1L, as.integer(ceiling(mstop / reduction)))
 
   # Create stratified folds
   strata_vec <- data_proc[[strata]]
@@ -218,6 +216,10 @@ CLogitBoostingHEE <- function(
     include_interactions = TRUE
   )
 
+
+  # The start of stability selection part:
+  mstop_reduced <- q * 5 * (1/nu) * reduction_scaler # reduce to gain efficiency in computation
+
   # Fit initial boosting model
   initial_model <- gamboost(
     main_formula$form,
@@ -233,7 +235,7 @@ CLogitBoostingHEE <- function(
     sampling.type = sampling_type,
     assumption = assumption,
     B = B,
-    mc.cores = stabsel_cores
+    mc.cores = n_cores
   )
   if (!is.null(q))      stabsel_args$q      <- q
   if (!is.null(PFER))   stabsel_args$PFER   <- PFER

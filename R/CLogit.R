@@ -11,8 +11,7 @@ CLogit <- function(risktype = c("classic", "median"))
 {
   risktype <- match.arg(risktype, choices = c("classic", "median"))
   ngradient <- function(y, f, w = 1) {
-    # browser()
-    
+
     event <- y[, 1]
     strata <- y[, 2]
     n <- length(event)
@@ -20,13 +19,13 @@ CLogit <- function(risktype = c("classic", "median"))
       f <- rep(f, n)
     if (length(w) == 1)
       w <- rep(w, n)
-    
+
     strata <- factor(strata, levels = unique(strata))
-    
+
     fj <- split(f, strata)
     wj <- split(w, strata)
     ej <- split(event, strata)
-    
+
     ngrad <- c(unlist(mapply(
       FUN = gradfun_help, ej, fj, wj, USE.NAMES = FALSE
     )))
@@ -41,24 +40,24 @@ CLogit <- function(risktype = c("classic", "median"))
     if (length(w) == 1)
       w <- rep(w, n)
     indx <- rep(1:n, w)
-    
+
     event <- event[indx]
     strata <- strata[indx]
     f <- f[indx]
-    
+
     risk <- rep(0, length(event))
     for (i in 1:length(event)) {
       risk[i] <- exp(f[i]) / sum(exp(f[strata == strata[i]]))
     }
     risk <- log(risk[event == 1])
-    
+
     if (risktype == "median") {
       -median(risk)
     } else{
       -mean(risk)
     }
   }
-  
+
   Family(
     ngradient =  ngradient,
     risk = risk,

@@ -12,6 +12,7 @@
 #' @param K Integer of folds for cross-validation (default 5).
 #' @param steady_state_percentage Integer Threshold for minimal improvement in CV risk
 #'   to declare the model in steady state (default 0.01, i.e., 0.01% change).
+#' @param n_cores Integer number of how many cores are available for CV.
 #' @param plot Logical. If the CV of the offset should be printed.
 #'
 #' @return A fitted `gamboost` object with optimal number of iterations.
@@ -21,8 +22,9 @@
 #' offset_mod <- gen_offset_model(data, formula = "resp ~ X + Z1 + Z2", mstop = 500, nu = 0.1, strata = "strata")
 #' }
 #' @export
-gen_offset_model <- function(data, formula, mstop, nu, strata, K = 5, steady_state_percentage = 0.01, plot = TRUE) {
+gen_offset_model <- function(data, formula, mstop, nu, strata, K = 5, steady_state_percentage = 0.01, n_cores = 1, plot = TRUE) {
 
+  cores <- min(n_cores, K)
   # Fit initial boosting model
   offset_model <- gamboost(
     formula,
@@ -35,9 +37,8 @@ gen_offset_model <- function(data, formula, mstop, nu, strata, K = 5, steady_sta
   sim.folds <- make_cv_folds(data, strata, K = K)
 
   # Cross-validation
-  cv.offset <- cvrisk(offset_model, folds = sim.folds, mc.cores = 5)
+  cv.offset <- cvrisk(offset_model, folds = sim.folds, mc.cores = cores)
   opt <- mstop(cv.offset)
-  browser()
   # Check if model has reached steady state
   # (Checks the last 5 iterations and calculates a mean rolling change)
   range_idx <- max(1, mstop - 4):mstop

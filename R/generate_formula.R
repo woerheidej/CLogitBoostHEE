@@ -10,7 +10,8 @@
 #'
 #' @param exposure Character string giving the name of the exposure
 #'   variable. If supplied and \code{include_interactions = TRUE},
-#'   interactions between the exposure and all other covariates are added.
+#'   interactions between the exposure and all other covariates are added. If
+#'   \code{NULL}, interactions between all covariates are added.
 #'
 #' @param response Character string giving the name of the response
 #'   tuple used on the left-hand side of the formula (default: \code{"resp"}).
@@ -22,7 +23,7 @@
 #' This variable is excluded from the predictor set.
 #'
 #' @param matching Character vector of variable names used for matching.
-#'   These variables are excluded from the predictor set.
+#'   These variables are excluded from the main effects.
 #'
 #' @param include_interactions Logical. If \code{TRUE}, include interaction
 #'   terms between the exposure and all other covariates.
@@ -100,13 +101,11 @@ generate_formula <- function(
 
   interaction_terms <- character(0)
   if (include_interactions) {
-    inter_vars <- if (!is.null(exposure) && exposure %in% vars) {
-      setdiff(vars, exposure)
-    } else {
-      NULL
-    }
 
-    if (!is.null(inter_vars)) {
+    if (!is.null(exposure) && exposure %in% vars) {
+      # Interactions only with exposure
+      inter_vars <- setdiff(c(vars, matching), exposure)
+
       interaction_terms <- vapply(
         inter_vars,
         function(v)
@@ -116,6 +115,21 @@ generate_formula <- function(
                  ", df = ", df_bols, ")"),
         character(1)
       )
+
+    } else {
+      # exposure is NULL => include all pairwise interactions among vars + matching
+      all_vars <- c(vars, matching)
+
+      # generate all unique combinations
+      combs <- t(combn(all_vars, 2))
+
+      interaction_terms <- apply(combs, 1, function(pair) {
+        paste0(
+          "bols(", pair[1], ", by = ", pair[2],
+          ", intercept = ", intercept,
+          ", df = ", df_bols, ")"
+        )
+      })
     }
   }
 
