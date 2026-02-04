@@ -22,7 +22,7 @@
 #' offset_mod <- gen_offset_model(data, formula = "resp ~ X + Z1 + Z2", mstop = 500, nu = 0.1, strata = "strata")
 #' }
 #' @export
-gen_offset_model <- function(data, formula, mstop, nu, strata, K = 5, steady_state_percentage = 0.01, n_cores = 1, plot = TRUE) {
+gen_offset_model <- function(data, formula, mstop, nu, strata, n_cores = 1, K = 5, steady_state_percentage = 0.01, plot = TRUE) {
 
   cores <- min(n_cores, K)
   # Fit initial boosting model

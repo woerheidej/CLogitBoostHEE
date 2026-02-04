@@ -140,7 +140,7 @@ CLogitBoostingHEE <- function(
     flexible = flexible,
     include_interactions = FALSE
   )
-  offset.cv <- gen_offset_model(data_proc, offset_formula$form, mstop, nu, strata, n_cores)
+  offset.cv <- gen_offset_model(data = data_proc, formula = offset_formula$form, mstop = mstop, nu = nu, strata = strata, n_cores = n_cores)
   offset_pred <- predict(offset.cv, type = "link")
 
   # Create stratified folds
