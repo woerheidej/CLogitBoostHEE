@@ -43,6 +43,8 @@
 #'   smooth base learners are included for continuous covariates.
 #' @param reduction_scaler Number used for scaling of the reduced stabsel mstop using
 #' the formula \code{q \* 5 \* (1/nu) \* reduction}.
+#' @param early_stopping Logical, should the offset model be refined through
+#' early stopping? Can be deactivated for high-dimensional data to save runtime. (default TRUE)
 #'
 #' @param remove Logical, if TRUE, removes variables that are singular in any fold.
 #'
@@ -87,6 +89,7 @@ CLogitBoostingHEE <- function(
     center = TRUE,
     flexible = TRUE,
     reduction_scaler = 1,
+    early_stopping = TRUE,
     remove = FALSE
 ) {
 
@@ -140,7 +143,7 @@ CLogitBoostingHEE <- function(
     flexible = flexible,
     include_interactions = FALSE
   )
-  offset.cv <- gen_offset_model(data = data_proc, formula = offset_formula$form, mstop = mstop, nu = nu, strata = strata, n_cores = n_cores)
+  offset.cv <- gen_offset_model(data = data_proc, formula = offset_formula$form, mstop = mstop, nu = nu, strata = strata, n_cores = n_cores, early_stopping = early_stopping)
   offset_pred <- predict(offset.cv, type = "link")
 
   # Create stratified folds

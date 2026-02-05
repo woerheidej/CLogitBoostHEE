@@ -25,7 +25,8 @@ matching variables, and covariates.}
 
 \item{exposure}{Character string giving the name of the exposure
 variable. If supplied and \code{include_interactions = TRUE},
-interactions between the exposure and all other covariates are added.}
+interactions between the exposure and all other covariates are added. If
+\code{NULL}, interactions between all covariates are added.}
 
 \item{response}{Character string giving the name of the response
 tuple used on the left-hand side of the formula (default: \code{"resp"}).}
@@ -37,7 +38,7 @@ This variable is excluded from the set of predictors.}
 This variable is excluded from the predictor set.}
 
 \item{matching}{Character vector of variable names used for matching.
-These variables are excluded from the predictor set.}
+These variables are excluded from the main effects.}
 
 \item{include_interactions}{Logical. If \code{TRUE}, include interaction
 terms between the exposure and all other covariates.}

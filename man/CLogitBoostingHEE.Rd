@@ -15,24 +15,26 @@ CLogitBoostingHEE(
   PFER = NULL,
   cutoff = NULL,
   nu = 1,
-  mstop = 1000,
+  mstop = 2000,
   B = 50,
   sampling_type = "SS",
   assumption = "none",
-  stabsel_cores = 1,
+  n_cores = 1,
   df_bols = 1,
   df_bbs = 1,
   intercept = FALSE,
   center = TRUE,
   flexible = TRUE,
-  reduction = 10
+  reduction_scaler = 1,
+  remove = FALSE
 )
 }
 \arguments{
 \item{data}{A \code{data.frame} containing the outcome, exposure, covariates,
 strata, and matching variables.}
 
-\item{exposure}{Character string giving the exposure variable name.}
+\item{exposure}{Character string giving the exposure variable name. Can be
+set to \code{NULL} for detection of heterogeneous effects in general.}
 
 \item{response}{Character string for the response variable used in
 boosting (default \code{"resp"}). Typically a two-column matrix with
@@ -67,7 +69,7 @@ or \code{"MB"} for the original stability selection approach bei Meinshausen & B
 \item{assumption}{Error bound assumption for complementary pairs stability selection,
 one of \code{"none"}, \code{"unimodal"}, or \code{"rconcave"}.}
 
-\item{stabsel_cores}{Number of cores for parallel stability selection (default 1).}
+\item{n_cores}{Number of cores for parallel stability selection (default 1).}
 
 \item{df_bols}{Degrees of freedom for linear base learners.}
 
@@ -80,12 +82,14 @@ one of \code{"none"}, \code{"unimodal"}, or \code{"rconcave"}.}
 \item{flexible}{Logical, if TRUE both linear and
 smooth base learners are included for continuous covariates.}
 
-\item{reduction}{Integer factor to reduce \code{mstop} for stability selection to save
-computational resources.}
+\item{reduction_scaler}{Number used for scaling of the reduced stabsel mstop using
+the formula \code{q \* 5 \* (1/nu) \* reduction}.}
+
+\item{remove}{Logical, if TRUE, removes variables that are singular in any fold.}
 }
 \value{
 A \code{stabsel} object containing selected variables and selection
-probabilities. If stability selection fails, returns \code{NULL} with a warning.
+probabilities.
 }
 \description{
 Fits a component-wise gradient boosting model with optional
@@ -100,13 +104,13 @@ model, and applies stability selection using \code{stabsel}.
 }
 \examples{
 \dontrun{
-data_sim <- simulate_matched_data(...) # your custom simulation function
+data_sim <- create_data() # simulation data
 stab_model <- CLogitBoostingHEE(data_sim$data,
                          exposure = "X",
                          response = "resp",
                          strata = "strata",
                          outcome = "y",
-                         q = 10, PFER = 1, cutoff = NULL)
+                         q = 5, PFER = 0.1, cutoff = NULL)
 }
 
 }

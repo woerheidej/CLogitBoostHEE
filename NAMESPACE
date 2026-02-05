@@ -2,6 +2,11 @@
 
 export(CLogit)
 export(CLogitBoostingHEE)
+export(create_data)
+export(funSetA)
+export(funSetB)
+export(funSetC)
+export(funSetHet)
 export(gen_offset_model)
 export(generate_formula)
 export(make_cv_folds)

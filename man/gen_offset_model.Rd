@@ -10,8 +10,10 @@ gen_offset_model(
   mstop,
   nu,
   strata,
+  n_cores = 1,
   K = 5,
-  steady_state_percentage = 0.01
+  steady_state_percentage = 0.01,
+  plot = TRUE
 )
 }
 \arguments{
@@ -19,16 +21,20 @@ gen_offset_model(
 
 \item{formula}{A \code{gamboost} formula defining predictors for the offset model.}
 
-\item{mstop}{Maximum number of boosting iterations.}
+\item{mstop}{Integer maximum number of boosting iterations.}
 
-\item{nu}{Step size for boosting (learning rate, default 1).}
+\item{nu}{Numeric step size for boosting (learning rate, default 1).}
 
 \item{strata}{Character string naming the strata variable for matched design.}
 
-\item{K}{Number of folds for cross-validation (default 5).}
+\item{n_cores}{Integer number of how many cores are available for CV.}
 
-\item{steady_state_percentage}{Threshold for minimal improvement in CV risk
+\item{K}{Integer of folds for cross-validation (default 5).}
+
+\item{steady_state_percentage}{Integer Threshold for minimal improvement in CV risk
 to declare the model in steady state (default 0.01, i.e., 0.01\% change).}
+
+\item{plot}{Logical. If the CV of the offset should be printed.}
 }
 \value{
 A fitted \code{gamboost} object with optimal number of iterations.

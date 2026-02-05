@@ -22,7 +22,7 @@
 #' offset_mod <- gen_offset_model(data, formula = "resp ~ X + Z1 + Z2", mstop = 500, nu = 0.1, strata = "strata")
 #' }
 #' @export
-gen_offset_model <- function(data, formula, mstop, nu, strata, n_cores = 1, K = 5, steady_state_percentage = 0.01, plot = TRUE) {
+gen_offset_model <- function(data, formula, mstop, nu, strata, n_cores = 1, K = 5, early_stopping = TRUE, steady_state_percentage = 0.01, plot = TRUE) {
 
   cores <- min(n_cores, K)
   # Fit initial boosting model
@@ -33,18 +33,18 @@ gen_offset_model <- function(data, formula, mstop, nu, strata, n_cores = 1, K = 
     control = boost_control(mstop = mstop, nu = nu)
   )
 
-  # Generate CV folds for strata
-  sim.folds <- make_cv_folds(data, strata, K = K)
-
-  # Cross-validation
-  cv.offset <- cvrisk(offset_model, folds = sim.folds, mc.cores = cores)
-  opt <- mstop(cv.offset)
+  if(early_stopping){
+    # Generate CV folds for strata
+    sim.folds <- make_cv_folds(data, strata, K = K)
+    # Cross-validation
+    early_stopping <- cvrisk(offset_model, folds = sim.folds, mc.cores = cores)
+    opt <- mstop(early_stopping)
   # Check if model has reached steady state
   # (Checks the last 5 iterations and calculates a mean rolling change)
   range_idx <- max(1, mstop - 4):mstop
   rolling_change <- mean(
     sapply(range_idx, function(i) {
-      (mean(cv.offset[, i]) / mean(cv.offset[, i+1]) - 1)
+      (mean(early_stopping[, i]) / mean(early_stopping[, i+1]) - 1)
     })
   ) * 100
   is_steady <- rolling_change < steady_state_percentage
@@ -62,7 +62,8 @@ gen_offset_model <- function(data, formula, mstop, nu, strata, n_cores = 1, K = 
   }
 
   # Return model refitted to optimal mstop
-  offset_model[mstop(cv.offset)]
+  return(offset_model[mstop(cv.offset)])  }
+  else{ return(offset_model)}
 }
 
 
