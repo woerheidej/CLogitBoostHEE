@@ -16,7 +16,8 @@ generate_formula(
   df_bbs = 1,
   intercept = FALSE,
   center = TRUE,
-  flexible = TRUE
+  flexible = TRUE,
+  singular = NULL
 )
 }
 \arguments{
@@ -58,6 +59,8 @@ in smooth base learners.}
 \item{flexible}{Logical. If \code{TRUE}, both linear and smooth base
 learners are included for continuous covariates; otherwise, only
 linear base learners are used.}
+
+\item{singular}{Character vector, don't include these as interactions, as they lead to singular cols.}
 }
 \value{
 A list with components:

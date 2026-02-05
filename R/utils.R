@@ -98,6 +98,5 @@ detect_singular_cols <- function(data_proc, exposure, response,outcome, strata, 
     }))
   })
 
-  singular_cols <- names(const_by_pair[const_by_pair > 0])
-  return(singular_cols)
+  return(const_by_pair)
 }

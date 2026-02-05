@@ -12,6 +12,7 @@ gen_offset_model(
   strata,
   n_cores = 1,
   K = 5,
+  early_stopping = TRUE,
   steady_state_percentage = 0.01,
   plot = TRUE
 )

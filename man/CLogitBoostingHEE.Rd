@@ -26,7 +26,7 @@ CLogitBoostingHEE(
   center = TRUE,
   flexible = TRUE,
   reduction_scaler = 1,
-  remove = FALSE
+  early_stopping = TRUE
 )
 }
 \arguments{
@@ -85,7 +85,8 @@ smooth base learners are included for continuous covariates.}
 \item{reduction_scaler}{Number used for scaling of the reduced stabsel mstop using
 the formula \code{q \* 5 \* (1/nu) \* reduction}.}
 
-\item{remove}{Logical, if TRUE, removes variables that are singular in any fold.}
+\item{early_stopping}{Logical, should the offset model be refined through
+early stopping? Can be deactivated for high-dimensional data to save runtime. (default TRUE)}
 }
 \value{
 A \code{stabsel} object containing selected variables and selection

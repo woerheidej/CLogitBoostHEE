@@ -139,7 +139,7 @@ CLogitBoostingHEE <- function(
     folds[strata_vec %in% smp, j] <- 1
   }
 
-  singular_cols <- detect_singular_cols(
+  singularity <- detect_singular_cols(
     data_proc = data_proc,
     exposure = exposure,
     outcome = outcome,
@@ -147,12 +147,13 @@ CLogitBoostingHEE <- function(
     strata = strata,
     folds = folds
   )
+  singular_cols <- names(singularity[singularity > 0])
 
   if (length(singular_cols) > 0) {
     # Generate informative message
     singular_msg <- paste0(
       singular_cols,
-      " (", const_by_pair[singular_cols], " fold", ifelse(const_by_pair[singular_cols] > 1, "s", ""), ")"
+      " (", singularity[singular_cols], " fold", ifelse(singularity[singular_cols] > 1, "s", ""), ")"
     )
       warning(sprintf(
         "Some columns are constant (singular) in at least one fold: %s. They are removed from HEE analysis.",
