@@ -7,7 +7,7 @@
 detect_continuous(df, exclude = c())
 }
 \arguments{
-\item{df}{data frame}
+\item{df}{A data.frame containing all data.}
 }
 \value{
 Two lists, continuous variables, and categorical ones.

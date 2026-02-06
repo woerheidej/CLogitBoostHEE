@@ -4,21 +4,34 @@
 \alias{detect_singular_cols}
 \title{Detect constant or singular columns (including interactions) per fold}
 \usage{
-detect_singular_cols(data_proc, exposure, response, outcome, strata, folds)
+detect_singular_cols(
+  data_proc,
+  exposure,
+  response,
+  outcome,
+  strata,
+  folds,
+  sampling_type = "SS"
+)
 }
 \arguments{
-\item{data_proc}{Data frame containing the preprocessed dataset}
+\item{data_proc}{Data frame containing the preprocessed dataset.}
 
-\item{exposure}{Name of exposure variable (character)}
+\item{exposure}{Character name of exposure variable.}
 
-\item{response}{Name of response variable (character)}
+\item{response}{Character name of response variable.}
 
-\item{strata}{Name of strata variable (character)}
+\item{strata}{Character name of strata variable.}
 
-\item{folds}{Binary matrix of complementary folds (rows = obs, cols = folds)}
+\item{folds}{Binary matrix of complementary folds (rows = obs, cols = folds).}
+
+\item{sampling_type}{Character string specifying the stability selection
+scheme: \code{"SS"} for Shah & Samworth complementary pairs stability
+selection or \code{"MB"} for the original Meinshausen & Bühlmann approach
+(default \code{"SS"}).}
 }
 \value{
-Character vector of column names that are constant in at least one fold
+Character vector of column names that are constant in at least one fold.
 }
 \description{
 Checks each variable (and its interaction with exposure) for being constant

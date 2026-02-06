@@ -1,4 +1,4 @@
-Package: CLogitBoostingHEE
+Package: CLogitBoostHEE
 Type: Package
 Title: Detection of Heterogeneous Exposure Effects
 Version: 0.1.0

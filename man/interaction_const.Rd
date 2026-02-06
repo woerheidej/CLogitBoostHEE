@@ -8,9 +8,9 @@ Checks if the two variables lead to a constant interaction.}
 interaction_const(x, z)
 }
 \arguments{
-\item{x}{First column}
+\item{x}{Character name of first column.}
 
-\item{z}{Second column.}
+\item{z}{Character name of second column.}
 }
 \value{
 TRUE/FALSE, if the two variables lead to constant interaction.
