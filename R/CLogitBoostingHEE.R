@@ -11,60 +11,101 @@
 #'
 #' @param data A `data.frame` containing the outcome, exposure, covariates,
 #'   strata, and matching variables.
-#' @param exposure Character string giving the exposure variable name. Can be
-#'   set to `NULL` for detection of heterogeneous effects in general.
-#' @param response Character string for the response variable used in
+#'
+#' @param exposure Character string giving the exposure variable name.
+#'   Can be set to `NULL` for detection of heterogeneous effects in general.
+#'
+#' @param response Character string giving the response variable used in
 #'   boosting (default `"resp"`). Typically a two-column matrix with
 #'   outcome and strata.
-#' @param strata Character string giving the strata variable used for
-#'   matched case-control design.
-#' @param outcome Character string giving the outcome variable name
-#'   in the original data.
-#' @param matching Character vector of variable names used for matching.
-#'   These are excluded from predictors.
-#' @param q Number of variables to select in each boosting iteration.
-#' @param PFER Per-family error rate for stability selection.
-#' @param cutoff Selection probability cutoff for stability selection.
-#'   Exactly two of `q`, `PFER`, `cutoff` must be specified.
-#' @param nu Step size for boosting (learning rate, default 1).
-#' @param mstop Maximum number of boosting iterations (default 1000).
-#' @param B Number of complementary pairs for stability selection (default 50).
-#' @param sampling_type Either `"SS"` for Shah & Samworth complementary pairs stability selection
-#'  or `"MB"` for the original stability selection approach bei Meinshausen & Bühlmann
-#'  (default `"SS"`).
-#' @param assumption Error bound assumption for complementary pairs stability selection,
-#'   one of `"none"`, `"unimodal"`, or `"rconcave"`.
-#' @param n_cores Number of cores for parallel stability selection (default 1).
-#' @param df_bols Degrees of freedom for linear base learners.
-#' @param df_bbs Degrees of freedom for smooth base learners.
-#' @param intercept Logical, should base learners include an intercept (default FALSE).
-#' @param center Logical, should continuous variables be centered (default TRUE).
-#' @param flexible Logical, if TRUE both linear and
-#'   smooth base learners are included for continuous covariates.
-#' @param reduction_scaler Number used for scaling of the reduced stabsel mstop using
-#' the formula \code{q \* 5 \* (1/nu) \* reduction}.
-#' @param early_stopping Logical, should the offset model be refined through
-#' early stopping? Can be deactivated for high-dimensional data to save runtime. (default TRUE)
 #'
-#' @return A `stabsel` object containing selected variables and selection
-#'   probabilities.
+#' @param strata Character string giving the strata variable used for a
+#'   matched case–control design.
+#'
+#' @param outcome Character string giving the outcome variable name in
+#'   the original data.
+#'
+#' @param matching Character vector of variable names used for matching.
+#'   These variables are excluded from the predictor set.
+#'
+#' @param q Numeric giving the number of variables to select in each
+#'   boosting iteration.
+#'
+#' @param PFER Numeric giving the per-family error rate for stability
+#'   selection.
+#'
+#' @param cutoff Numeric giving the selection probability cutoff for
+#'   stability selection. Exactly two of `q`, `PFER`, and `cutoff`
+#'   must be specified.
+#'
+#' @param nu Numeric giving the boosting step size (learning rate,
+#'   default `1`).
+#'
+#' @param mstop Integer giving the maximum number of boosting iterations
+#'   (default `2000`).
+#'
+#' @param B Integer giving the number of complementary pairs used for
+#'   stability selection (default `50`).
+#'
+#' @param sampling_type Character string specifying the stability selection
+#'   scheme: `"SS"` for Shah & Samworth complementary pairs stability
+#'   selection or `"MB"` for the original Meinshausen & Bühlmann approach
+#'   (default `"SS"`).
+#'
+#' @param assumption Character string specifying the error-bound assumption
+#'   used for complementary pairs stability selection. One of `"none"`,
+#'   `"unimodal"`, or `"rconcave"`.
+#'
+#' @param n_cores Integer giving the number of CPU cores used for parallel
+#'   stability selection (default `1`).
+#'
+#' @param df_bols Integer giving the degrees of freedom for linear base
+#'   learners.
+#'
+#' @param df_bbs Integer giving the degrees of freedom for smooth base
+#'   learners.
+#'
+#' @param intercept Logical indicating whether base learners should include
+#'   an intercept (default `FALSE`).
+#'
+#' @param center Logical indicating whether continuous variables should be
+#'   centered during preprocessing (default `TRUE`).
+#'
+#' @param flexible Logical indicating whether both linear and smooth base
+#'   learners are included for continuous covariates (default `TRUE`).
+#'
+#' @param reduction_scaler Numeric used to scale the reduced `mstop` in
+#'   stability selection according to
+#'   \code{q * 5 * (1 / nu) * reduction_scaler}.
+#'
+#' @param early_stopping Logical indicating whether the offset model should
+#'   be refined via early stopping. Can be disabled for high-dimensional
+#'   data to reduce runtime (default `TRUE`).
+#'
+#' @return A `stabsel` object containing the selected variables and their
+#'   selection probabilities.
 #'
 #' @examples
 #' \dontrun{
-#' data_sim <- create_data() # simulation data
-#' stab_model <- CLogitBoostingHEE(data_sim$data,
-#'                          exposure = "X",
-#'                          response = "resp",
-#'                          strata = "strata",
-#'                          outcome = "y",
-#'                          q = 5, PFER = 0.1, cutoff = NULL)
+#' data_sim <- create_data()
+#' stab_model <- CLogitBoostingHEE(
+#'   data_sim$data,
+#'   exposure = "X",
+#'   response = "resp",
+#'   strata = "strata",
+#'   outcome = "y",
+#'   q = 5,
+#'   PFER = 0.1,
+#'   cutoff = NULL
+#' )
 #' }
 #'
 #' @import stats
 #' @import mboost
 #' @import stabs
-
+#'
 #' @export
+
 CLogitBoostingHEE <- function(
     data,
     exposure = NULL,
