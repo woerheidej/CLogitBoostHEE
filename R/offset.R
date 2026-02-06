@@ -58,11 +58,11 @@ gen_offset_model <- function(data, formula, mstop, nu, strata, n_cores = 1, K = 
        }
   }
   if(plot){
-    plot(cv.offset)
+    plot(early_stopping)
   }
 
   # Return model refitted to optimal mstop
-  return(offset_model[mstop(cv.offset)])  }
+  return(offset_model[opt])  }
   else{ return(offset_model)}
 }
 
