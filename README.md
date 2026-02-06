@@ -16,16 +16,16 @@ devtools::install_github("woerheidej/CLogitBoostingHEE")
 # Example CLogitBoostHEE
 
 ``` r
-library(CLogitBoostingHEE)
-data(sim_data)
+library(CLogitBoostHEE)
+data("sim_data")
 
 set.seed(1899)
-sim_results <- CLogitBoostingHEE(
-  stroke_data,
+sim_results <- CLogitBoostHEE(
+  sim$data,
   exposure = "X",
   strata = "strata",
   outcome = "y",
-  matching = c("s", "d"),
+  matching = "s",
   q = 5,
   B = 50,
   PFER = 0.5,
