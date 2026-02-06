@@ -36,5 +36,6 @@ sim_results <- CLogitBoostHEE(
   n_cores = 1
 ))
 
-plot(sim_results)
+plot_results(sim_results,
+     main = "Results of Stability Selection")
 ```
