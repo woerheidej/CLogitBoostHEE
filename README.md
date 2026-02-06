@@ -38,6 +38,3 @@ sim_results <- CLogitBoostingHEE(
 
 plot(sim_results)
 ```
-vi <- varimp(illu.rf)
-plot(vi)
-```
