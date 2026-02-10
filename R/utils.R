@@ -174,5 +174,70 @@ plot_results <- function(sim_results, main_title = "Results of Stability Selecti
   invisible(NULL)
 }
 
+#' Plot Stability Selection Results with Cleaned Variable Names
+#'
+#' Plots a `stabsel` object while cleaning variable names by removing
+#' technical annotations such as `df = 1`, `intercept = FALSE/TRUE`,
+#' and `center = TRUE/FALSE`. The plot retains the original `stabsel`
+#' gradient bars and layout, with a customizable title.
+#'
+#' @param sim_results A `stabsel` object returned from a stability
+#'   selection procedure (e.g., the output of `CLogitBoostingHEE`).
+#'
+#' @param main_title Character string specifying the plot title. Default
+#'   is `"Results of Stability Selection"`.
+#'
+#' @return Invisibly returns `NULL`. Generates a plot of the stability
+#'   selection results.
+#'
+#' @examples
+#' \dontrun{
+#' # Suppose stab_model is a stabsel object from your analysis
+#' plot_results(stab_model)
+#' plot_results(stab_model, main_title = "HEE Selection Probabilities")
+#' }
+#'
+#' @import stabs
+#' @export
+plot_selection_paths <- function(sim_results, main_title = "Selection Probability") {
+
+  # Check that sim_results is a stabsel object
+  if (!inherits(sim_results, "stabsel")) {
+    stop("sim_results must be a 'stabsel' object.")
+  }
+
+  # Clean variable names:
+  new_names <- names(sim_results$max)
+
+  # Remove df = <number>
+  new_names <- gsub("df = [0-9]+", "", new_names)
+
+  # Remove center = TRUE/FALSE
+  new_names <- gsub("center = (TRUE|FALSE)", "", new_names)
+
+  # Remove intercept = TRUE/FALSE
+  new_names <- gsub("intercept = (TRUE|FALSE)", "", new_names)
+
+  # Remove commas and extra =
+  new_names <- gsub(",", "", new_names)
+  new_names <- gsub(" =", "", new_names)
+
+  # Remove trailing double spaces before closing parentheses
+  new_names <- gsub("  \\)", ")", new_names)
+
+  # Trim leading/trailing whitespace
+  new_names <- trimws(new_names)
+
+  # Assign cleaned names back
+  names(sim_results$max) <- new_names
+
+  # Plot with custom title and adjusted y-axis label
+  plot(sim_results, main = main_title, xlab = "Selection Frequency")
+  invisible(NULL)
+}
+
+
+
+
 
 

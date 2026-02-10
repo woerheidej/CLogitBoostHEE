@@ -35,7 +35,7 @@ gen_offset_model <- function(data, formula, mstop, nu, strata, n_cores = 1, K = 
   )
 
   if(early_stopping){
-    RhpcBLASctl::blas_set_num_threads(round((n_cores/K) -1))
+    RhpcBLASctl::blas_set_num_threads(1)
     # Generate CV folds for strata
     sim.folds <- make_cv_folds(data, strata, K = K)
     # Cross-validation
