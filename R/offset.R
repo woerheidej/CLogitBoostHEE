@@ -26,6 +26,7 @@ gen_offset_model <- function(data, formula, mstop, nu, strata, n_cores = 1, K = 
 
   cores <- min(n_cores, K)
   # Fit initial boosting model
+  RhpcBLASctl::blas_set_num_threads(n_cores)
   offset_model <- gamboost(
     formula,
     data = data,
@@ -34,6 +35,7 @@ gen_offset_model <- function(data, formula, mstop, nu, strata, n_cores = 1, K = 
   )
 
   if(early_stopping){
+    RhpcBLASctl::blas_set_num_threads(round((n_cores/K) -1))
     # Generate CV folds for strata
     sim.folds <- make_cv_folds(data, strata, K = K)
     # Cross-validation

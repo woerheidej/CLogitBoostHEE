@@ -245,6 +245,8 @@ CLogitBoostingHEE <- function(
   if (!is.null(PFER))   stabsel_args$PFER   <- PFER
   if (!is.null(cutoff)) stabsel_args$cutoff <- cutoff
 
+  RhpcBLASctl::blas_set_num_threads(1)
+
   stabsel_model <- tryCatch({
     withCallingHandlers(
       do.call(stabsel, stabsel_args),
