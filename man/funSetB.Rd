@@ -4,7 +4,7 @@
 \alias{funSetB}
 \title{Simulate main effects for scenario SetB with nonlinear components}
 \usage{
-funSetB(Z, snr = 1, exp.effect = 0.6, scale_nonlinear = TRUE)
+funSetB(Z, snr = 1, exp.effect = 0.6)
 }
 \arguments{
 \item{Z}{Numeric matrix of covariates.}

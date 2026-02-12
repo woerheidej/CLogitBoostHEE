@@ -1,5 +1,6 @@
 #' Helper: detect continuous variables
 #' @param df A data.frame containing all data.
+#' @param exclude A list of variable names to exclude
 #'
 #' @return Two lists, continuous variables, and categorical ones.
 #'
@@ -8,12 +9,8 @@
 detect_continuous <- function(df, exclude = c()) {
   vars <- setdiff(names(df), exclude)
   is_cont <- sapply(df[, vars, drop = FALSE], function(x)
-    is.numeric(x) && length(unique(x)) > 2
-  )
-  list(
-    cont_vars = vars[is_cont],
-    cat_vars  = vars[!is_cont]
-  )
+    is.numeric(x) && length(unique(x)) > 2)
+  list(cont_vars = vars[is_cont], cat_vars  = vars[!is_cont])
 }
 
 #' Detect constant or singular columns (including interactions) per fold
@@ -24,6 +21,7 @@ detect_continuous <- function(df, exclude = c()) {
 #' @param data_proc Data frame containing the preprocessed dataset.
 #' @param exposure Character name of exposure variable.
 #' @param response Character name of response variable.
+#' @param outcome Charcater name of the outcome variable.
 #' @param strata Character name of strata variable.
 #' @param folds Binary matrix of complementary folds (rows = obs, cols = folds).
 #' @param sampling_type Character string specifying the stability selection
@@ -33,9 +31,14 @@ detect_continuous <- function(df, exclude = c()) {
 #'
 #' @return Character vector of column names that are constant in at least one fold.
 #'
-detect_singular_cols <- function(data_proc, exposure, response,outcome, strata, folds, sampling_type = "SS") {
-
-  vars_to_check <- setdiff(names(data_proc), c(response, strata,outcome))
+detect_singular_cols <- function(data_proc,
+                                 exposure,
+                                 response,
+                                 outcome,
+                                 strata,
+                                 folds,
+                                 sampling_type = "SS") {
+  vars_to_check <- setdiff(names(data_proc), c(response, strata, outcome))
 
   const_by_pair <- sapply(vars_to_check, function(v) {
     # Count number of folds where variable or its interaction is constant
@@ -53,12 +56,13 @@ detect_singular_cols <- function(data_proc, exposure, response,outcome, strata, 
       v4_const <- FALSE
 
       # Do the same for the complementary pair if appropriate
-      if(sampling_type == "SS"){
-      idx2 <- folds[, j] == 0
-      x2 <- data_proc[[v]][idx2]
-      x4 <- data_proc[[exposure]][idx2]
-      v2_const <- length(unique(x2[!is.na(x2)])) <= 1
-      v4_const <- interaction_const(x2, x4)}
+      if (sampling_type == "SS") {
+        idx2 <- folds[, j] == 0
+        x2 <- data_proc[[v]][idx2]
+        x4 <- data_proc[[exposure]][idx2]
+        v2_const <- length(unique(x2[!is.na(x2)])) <= 1
+        v4_const <- interaction_const(x2, x4)
+      }
 
       # 0 = not constant, 1 = constant in one fold, 2 = constant in both folds
       sum((v1_const | v3_const), (v2_const | v4_const))
@@ -80,7 +84,8 @@ detect_singular_cols <- function(data_proc, exposure, response,outcome, strata, 
 #'
 interaction_const <- function(x, z) {
   ok <- !is.na(x) & !is.na(z)
-  if (!any(ok)) return(TRUE)
+  if (!any(ok))
+    return(TRUE)
 
   x <- x[ok]
   z <- z[ok]
@@ -119,7 +124,7 @@ interaction_const <- function(x, z) {
 #' and `center = TRUE/FALSE`. The plot retains the original `stabsel`
 #' gradient bars and layout, with a customizable title.
 #'
-#' @param sim_results A `stabsel` object returned from a stability
+#' @param results A `stabsel` object returned from a stability
 #'   selection procedure (e.g., the output of `CLogitBoostingHEE`).
 #'
 #' @param main_title Character string specifying the plot title. Default
@@ -137,15 +142,14 @@ interaction_const <- function(x, z) {
 #'
 #' @import stabs
 #' @export
-plot_results <- function(sim_results, main_title = "Results of Stability Selection") {
-
-  # Check that sim_results is a stabsel object
-  if (!inherits(sim_results, "stabsel")) {
-    stop("sim_results must be a 'stabsel' object.")
+plot_results <- function(results, main_title = "Results of Stability Selection") {
+  # Check that results is a stabsel object
+  if (!inherits(results, "stabsel")) {
+    stop("results must be a 'stabsel' object.")
   }
 
   # Clean variable names:
-  new_names <- names(sim_results$max)
+  new_names <- names(results$max)
 
   # Remove df = <number>
   new_names <- gsub("df = [0-9]+", "", new_names)
@@ -167,10 +171,10 @@ plot_results <- function(sim_results, main_title = "Results of Stability Selecti
   new_names <- trimws(new_names)
 
   # Assign cleaned names back
-  names(sim_results$max) <- new_names
+  names(results$max) <- new_names
 
   # Plot with custom title and adjusted y-axis label
-  plot(sim_results, main = main_title, xlab = "Selection Frequency")
+  plot(results, main = main_title, xlab = "Selection Frequency")
   invisible(NULL)
 }
 
@@ -181,7 +185,7 @@ plot_results <- function(sim_results, main_title = "Results of Stability Selecti
 #' and `center = TRUE/FALSE`. The plot retains the original `stabsel`
 #' gradient bars and layout, with a customizable title.
 #'
-#' @param sim_results A `stabsel` object returned from a stability
+#' @param results A `stabsel` object returned from a stability
 #'   selection procedure (e.g., the output of `CLogitBoostingHEE`).
 #'
 #' @param main_title Character string specifying the plot title. Default
@@ -198,16 +202,16 @@ plot_results <- function(sim_results, main_title = "Results of Stability Selecti
 #' }
 #'
 #' @import stabs
+#' @import pheatmap
 #' @export
-plot_selection_paths <- function(sim_results, main_title = "Selection Probability") {
-
-  # Check that sim_results is a stabsel object
-  if (!inherits(sim_results, "stabsel")) {
-    stop("sim_results must be a 'stabsel' object.")
+plot_selection_paths <- function(results, main_title = "Selection Probability") {
+  # Check that results is a stabsel object
+  if (!inherits(results, "stabsel")) {
+    stop("results must be a 'stabsel' object.")
   }
 
   # Clean variable names:
-  new_names <- names(sim_results$max)
+  new_names <- names(results$max)
 
   # Remove df = <number>
   new_names <- gsub("df = [0-9]+", "", new_names)
@@ -229,12 +233,28 @@ plot_selection_paths <- function(sim_results, main_title = "Selection Probabilit
   new_names <- trimws(new_names)
 
   # Plot with custom title and adjusted y-axis label
-  pheatmap(sim_results$phat, main = main_title, labels_row = new_names, labels_col = seq(1:ncol) xlab = "Selection Frequency")
+  pheatmap(
+    results$phat,
+    main = main_title,
+    labels_row = new_names,
+    labels_col = seq(1:ncol),
+    xlab = "Selection Frequency"
+  )
   invisible(NULL)
 }
 
-
-
-
-
-
+#' Simulated dataset for examples
+#'
+#' This dataset contains simulated data used for examples and testing.
+#'
+#' @format A data frame with 4000 rows (1000 cases and 3000 controls) and 14 variables:
+#' \describe{
+#'   \item{X}{Exposure}
+#'   \item{Z1-Z10}{Covariables}
+#'   \item{y}{Outcome}
+#'   \item{s}{Matching Variable}
+#'   \item{strata}{Strata ID}
+#'   ...
+#' }
+#' @source Simulated
+"sim"

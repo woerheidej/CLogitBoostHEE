@@ -31,6 +31,8 @@ create_data(
 \arguments{
 \item{set}{Character. Name of the base simulation scenario for outcome generation.}
 
+\item{set.x}{Character. Name of the base simulation scenario for the generation of confounding effects}
+
 \item{set.het}{Character. Name of the scenario used for heterogeneous exposure effects.}
 
 \item{snr}{Character. Signal-to-noise ratio for main outcome effects. Options: "normal", "strong", "weak".}

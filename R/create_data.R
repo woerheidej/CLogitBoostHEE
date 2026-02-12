@@ -5,6 +5,7 @@
 #' heterogeneous exposure effects.
 #'
 #' @param set Character. Name of the base simulation scenario for outcome generation.
+#' @param set.x Character. Name of the base simulation scenario for the generation of confounding effects
 #' @param set.het Character. Name of the scenario used for heterogeneous exposure effects.
 #' @param snr Character. Signal-to-noise ratio for main outcome effects. Options: "normal", "strong", "weak".
 #' @param snr.x Character. Signal-to-noise ratio for exposure model. Options: "normal", "strong", "weak".
@@ -43,6 +44,7 @@
 #' )
 #' }
 #'
+#' @import mvtnorm
 #' @export
 create_data <- function(set = "SetA",
                         set.x = "SetA",
@@ -60,17 +62,17 @@ create_data <- function(set = "SetA",
                         k = 4,
                         rr = 0,
                         rho = 0,
-                        corr = c("Toeplitz","iid"),
+                        corr = c("Toeplitz", "iid"),
                         alpha.fac = 1,
                         int = -2,
                         int.x = -1,
                         clr_mode = FALSE) {
   # sample Sex as a binary var
   s <- rbinom(N, 1, 0.5)
-  s.effect <- runif(1, -1, 1)/2
-  s.effect.x <- runif(1, -1, 1)/2
-  alpha.Sex <- c(-s.effect*alpha.fac, s.effect*alpha.fac) # add effect for one Sex
-  alpha.Sex.x <- c(-s.effect.x*alpha.fac, s.effect.x*alpha.fac) # add effect for one Sex
+  s.effect <- runif(1, -1, 1) / 2
+  s.effect.x <- runif(1, -1, 1) / 2
+  alpha.Sex <- c(-s.effect * alpha.fac, s.effect * alpha.fac) # add effect for one Sex
+  alpha.Sex.x <- c(-s.effect.x * alpha.fac, s.effect.x * alpha.fac) # add effect for one Sex
 
   # sample districts
   districts <- sample(1:d, N, replace = TRUE)
@@ -83,18 +85,20 @@ create_data <- function(set = "SetA",
   if (corr == "iid") {
     Sigma <- diag(p)
   } else if (corr == "cs") {
-    Sigma <- matrix(rr, nrow = p, ncol = p); diag(Sigma) <- 1
+    Sigma <- matrix(rr, nrow = p, ncol = p)
+    diag(Sigma) <- 1
   } else if (corr == "Toeplitz") {
-    if (abs(rho) >= 1) stop("rho must be in (-1, 1) for a valid Toeplitz covariance")
-    Sigma <- toeplitz(rho^(0:(p - 1)))
+    if (abs(rho) >= 1)
+      stop("rho must be in (-1, 1) for a valid Toeplitz covariance")
+    Sigma <- toeplitz(rho ^ (0:(p - 1)))
   }
   Z <- mvtnorm::rmvnorm(N, sigma = Sigma)
   colnames(Z) <- paste0("Z", seq(1:ncol(Z)))
 
   ## create some binary variables
-  if(p>2) {
-  Z[, 1] <- as.numeric(Z[, 1] > median(Z[,1]))
-  Z[, 2] <- as.numeric(Z[, 2] > median(Z[,2]))
+  if (p > 2) {
+    Z[, 1] <- as.numeric(Z[, 1] > median(Z[, 1]))
+    Z[, 2] <- as.numeric(Z[, 2] > median(Z[, 2]))
   }
   ## define correct SNR factor for x
   snr.fac.x <- 1
@@ -106,9 +110,20 @@ create_data <- function(set = "SetA",
   }
 
   ## create how confounders affect exposure
-  fun.x.obj <- do.call(paste0("fun", set.x), list(Z = Z, exp.effect = exp.effect, snr = snr.fac.x))
-  fun.x <- if (is.list(fun.x.obj)) fun.x.obj$effect else fun.x.obj
-  true.coefs <- if (is.list(fun.x.obj)) fun.x.obj$coefs else rep(NA, p)
+  fun.x.obj <- do.call(paste0("fun", set.x),
+                       list(
+                         Z = Z,
+                         exp.effect = exp.effect,
+                         snr = snr.fac.x
+                       ))
+  fun.x <- if (is.list(fun.x.obj))
+    fun.x.obj$effect
+  else
+    fun.x.obj
+  true.coefs <- if (is.list(fun.x.obj))
+    fun.x.obj$coefs
+  else
+    rep(NA, p)
 
   eta.x <- int.x + alpha.x[districts] + alpha.Sex.x[s + 1] + fun.x
   prob.x <- exp(eta.x) / (1 + exp(eta.x))
@@ -126,7 +141,12 @@ create_data <- function(set = "SetA",
   }
 
   ## create function how confounders affect outcome
-  fun.y.obj <- do.call(paste0("fun", set), list(Z = Z, snr = snr.fac, exp.effect = exp.effect))
+  fun.y.obj <- do.call(paste0("fun", set),
+                       list(
+                         Z = Z,
+                         snr = snr.fac,
+                         exp.effect = exp.effect
+                       ))
   fun.y <- if (is.list(fun.y.obj))
     fun.y.obj$effect
   else
@@ -167,9 +187,9 @@ create_data <- function(set = "SetA",
     fun.het.obj$coefs
   else
     rep(NA, p)
-  if(clr_mode){
+  if (clr_mode) {
     names(true.het.coefs) <- paste0("X * ", colnames(cbind(Z, s)))
-  }else{
+  } else{
     names(true.het.coefs) <- paste0("bols(X, by = ", colnames(cbind(Z, s)), ", intercept = FALSE, df = 1)")
   }
 
@@ -242,14 +262,12 @@ create_data <- function(set = "SetA",
 #' @export
 funSetC <- function(Z, exp.effect, snr) {
   p <- ncol(Z)
-  par <- c(
-    sample(c(-exp.effect, exp.effect), 2, replace = FALSE),
-    sample(rep(c(exp.effect, -exp.effect) /(1/0.5),p-2), p - 2, replace = FALSE))
+  par <- c(sample(c(-exp.effect, exp.effect), 2, replace = FALSE),
+           sample(rep(
+             c(exp.effect, -exp.effect) / (1 / 0.5), p - 2
+           ), p - 2, replace = FALSE))
   par[sample(p, 0.5 * p)] <- 0
-  list(
-    effect = as.vector(Z %*% par) * snr,
-    coefs  = par * snr
-  )
+  list(effect = as.vector(Z %*% par) * snr, coefs  = par * snr)
 }
 
 
@@ -273,24 +291,24 @@ funSetC <- function(Z, exp.effect, snr) {
 funSetA <- function(Z, exp.effect, snr) {
   par <- rep(0, ncol(Z))
   par[1:2] <- sample(c(-exp.effect, exp.effect), replace = FALSE)
-  par[3:ncol(Z)] <- sample(rep(c(exp.effect / (1/0.5), -exp.effect / (1/0.5)),
-                               times = (ncol(Z) - 2) / 2), replace = FALSE)
+  par[3:ncol(Z)] <- sample(rep(c(
+    exp.effect / (1 / 0.5), -exp.effect / (1 / 0.5)
+  ), times = (ncol(Z) - 2) / 2), replace = FALSE)
   signs <- ifelse(par < 0, -1, +1)
   signs <- c(signs, 1)
-  effect <- (Z %*% par)*snr
-  list(
-    effect = effect,
-    coefs = par * snr,
-    signs = signs
-  )
+  effect <- (Z %*% par) * snr
+  list(effect = effect,
+       coefs = par * snr,
+       signs = signs)
 }
 
 #' Simulate heterogeneous exposure effects for scenario SetHet
 #'
 #' Generates heterogeneous exposure effects for covariates and a binary variable (s).
 #'
-#' @param Z Numeric matrix of covariates.
-#' @param s Numeric vector of binary variable (e.g., Sex) of length nrow(Z).
+#' @param X Vector of the exposure variable.
+#' @param Z Matrix of covariates.
+#' @param s Vector of binary variable (e.g., Sex) of length nrow(Z).
 #' @param het.exposure.strength Numeric. Strength of effect modification.
 #' @param snr Numeric. Signal-to-noise ratio multiplier.
 #' @param n_het_effects Integer. Number of covariates with heterogeneous effects.
@@ -304,14 +322,21 @@ funSetA <- function(Z, exp.effect, snr) {
 #' }
 #'
 #' @export
-funSetHet <- function(X, Z, s, het.exposure.strength, snr, n_het_effects, signs) {
-  target_sd <- (sd(X*Z[,1]) + sd(X*Z[,2])) / 2 # mean between the two,
+funSetHet <- function(X,
+                      Z,
+                      s,
+                      het.exposure.strength,
+                      snr,
+                      n_het_effects,
+                      signs) {
+  target_sd <- (sd(X * Z[, 1]) + sd(X * Z[, 2])) / 2 # mean between the two,
   # exposure ~0.3, Z[,1:2] ~ 0.5 = 0.15 -> SD 0.85/0.15 = ~ 0.35
 
   Z <- cbind(Z, s)
   par <- rep(0, ncol(Z))
 
-  is_binary <- apply(Z, 2, function(x) length(unique(x)) < 3)
+  is_binary <- apply(Z, 2, function(x)
+    length(unique(x)) < 3)
   effect_cols <- sample(1:ncol(Z), n_het_effects)
 
   for (i in seq_along(effect_cols)) {
@@ -321,19 +346,18 @@ funSetHet <- function(X, Z, s, het.exposure.strength, snr, n_het_effects, signs)
       par[col_idx] <- sign * het.exposure.strength
     } else if (is.na(sign)) {
       sign_sub <- sample(c(-1, 1), 1)
-      par[col_idx] <- sign_sub * het.exposure.strength / (sd(X*Z[,col_idx])/target_sd)
+      par[col_idx] <- sign_sub * het.exposure.strength / (sd(X * Z[, col_idx]) /
+                                                            target_sd)
     } else {
-      par[col_idx] <- sign * het.exposure.strength / (sd(X*Z[,col_idx])/target_sd)
+      par[col_idx] <- sign * het.exposure.strength / (sd(X * Z[, col_idx]) / target_sd)
     }
   }
 
   effect <- Z %*% par
   ret <- effect * snr
-  list(
-    effect = ret,
-    coefs = par * snr,
-    n_het_effects = n_het_effects
-  )
+  list(effect = ret,
+       coefs = par * snr,
+       n_het_effects = n_het_effects)
 }
 
 #' Simulate main effects for scenario SetB with nonlinear components
@@ -352,9 +376,10 @@ funSetHet <- function(X, Z, s, het.exposure.strength, snr, n_het_effects, signs)
 #' }
 #'
 #' @export
-funSetB <- function(Z, snr = 1, exp.effect = 0.6, scale_nonlinear = TRUE) {
-
-  binary_coefs <- sample(c(-exp.effect, exp.effect), size = 2, replace = FALSE) * snr
+funSetB <- function(Z, snr = 1, exp.effect = 0.6) {
+  binary_coefs <- sample(c(-exp.effect, exp.effect),
+                         size = 2,
+                         replace = FALSE) * snr
   binary_effect <- Z[, 1] * binary_coefs[1] + Z[, 2] * binary_coefs[2]
 
   # Target mean effect (0.5 = mean(binary_cols))
@@ -363,18 +388,33 @@ funSetB <- function(Z, snr = 1, exp.effect = 0.6, scale_nonlinear = TRUE) {
   n_cont <- ncol(Z) - 2
 
   base_funcs <- list(
-    f1 = function(x) (0.6 * sin(2 * x) + 0.6 * cos(x)),
-    f2 = function(x) (0.5 * x^2),
-    f3 = function(x) (-0.5 * x^2),
-    f4 = function(x) (0.25 * x + sin(1.5 * x) * 0.7 * cos(x)),
-    f5 = function(x) ((1 / (1 + exp(-2 * x)))-0.5),
-    f6 = function(x) ((1 / (1 + exp(2 * x)))-0.5),
-    f7 = function(x) (cos(2 * x) * 0.8),
-    f8 = function(x) ifelse(x < 0, 0.8 * x, 0.4 * x)
+    f1 = function(x)
+      (0.6 * sin(2 * x) + 0.6 * cos(x)),
+    f2 = function(x)
+      (0.5 * x ^ 2),
+    f3 = function(x)
+      (-0.5 * x ^ 2),
+    f4 = function(x)
+      (0.25 * x + sin(1.5 * x) * 0.7 * cos(x)),
+    f5 = function(x)
+      ((1 / (1 + exp(
+        -2 * x
+      ))) - 0.5),
+    f6 = function(x)
+      ((1 / (1 + exp(
+        2 * x
+      ))) - 0.5),
+    f7 = function(x)
+      (cos(2 * x) * 0.8),
+    f8 = function(x)
+      ifelse(x < 0, 0.8 * x, 0.4 * x)
   )
 
   funcs_n <- length(base_funcs)
-  selected_cols <- if (n_cont >= funcs_n) 3:ncol(Z) else sample(3:ncol(Z), funcs_n, replace = TRUE)
+  selected_cols <- if (n_cont >= funcs_n)
+    3:ncol(Z)
+  else
+    sample(3:ncol(Z), funcs_n, replace = TRUE)
   funcs_final <- base_funcs
   for (i in seq_along(base_funcs)) {
     funcs_final[[i]] <- local({
@@ -382,7 +422,8 @@ funSetB <- function(Z, snr = 1, exp.effect = 0.6, scale_nonlinear = TRUE) {
       x_i <- Z[, selected_cols[i]]
       current_sd <- sd(f_i(x_i))
       scale_factor <- target_sd / current_sd
-      function(x) scale_factor * f_i(x)
+      function(x)
+        scale_factor * f_i(x)
     })
   }
 
@@ -394,14 +435,8 @@ funSetB <- function(Z, snr = 1, exp.effect = 0.6, scale_nonlinear = TRUE) {
   total_effect <- (binary_effect + nonlinear_effect)
 
   coefs <- c(binary_coefs, rep(NA, n_cont))
-  signs <- c(ifelse(coefs < 0, -1, 1),1)
-  list(
-    effect = total_effect,
-    coefs = coefs,
-    signs = signs
-  )
+  signs <- c(ifelse(coefs < 0, -1, 1), 1)
+  list(effect = total_effect,
+       coefs = coefs,
+       signs = signs)
 }
-
-
-
-

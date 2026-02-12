@@ -7,9 +7,11 @@
 funSetHet(X, Z, s, het.exposure.strength, snr, n_het_effects, signs)
 }
 \arguments{
-\item{Z}{Numeric matrix of covariates.}
+\item{X}{Vector of the exposure variable.}
 
-\item{s}{Numeric vector of binary variable (e.g., Sex) of length nrow(Z).}
+\item{Z}{Matrix of covariates.}
+
+\item{s}{Vector of binary variable (e.g., Sex) of length nrow(Z).}
 
 \item{het.exposure.strength}{Numeric. Strength of effect modification.}
 

@@ -10,6 +10,7 @@
 #' @param nu Numeric step size for boosting (learning rate, default 1).
 #' @param strata Character string naming the strata variable for matched design.
 #' @param K Integer of folds for cross-validation (default 5).
+#' @param early_stopping Logical. Toggle early stopping on or off.
 #' @param steady_state_percentage Integer Threshold for minimal improvement in CV risk
 #'   to declare the model in steady state (default 0.01, i.e., 0.01% change).
 #' @param n_cores Integer number of how many cores are available for CV.
@@ -19,12 +20,21 @@
 #'
 #' @examples
 #' \dontrun{
-#' offset_mod <- gen_offset_model(data, formula = "resp ~ X + Z1 + Z2", mstop = 500, nu = 0.1, strata = "strata")
+#' offset_mod <- gen_offset_model(data, formula = "resp ~ X + Z1 + Z2",
+#' mstop = 500, nu = 0.1, strata = "strata")
 #' }
 #' @import parallel
 #' @export
-gen_offset_model <- function(data, formula, mstop, nu, strata, n_cores = 1, K = 5, early_stopping = TRUE, steady_state_percentage = 0.01, plot = TRUE) {
-
+gen_offset_model <- function(data,
+                             formula,
+                             mstop,
+                             nu,
+                             strata,
+                             n_cores = 1,
+                             K = 5,
+                             early_stopping = TRUE,
+                             steady_state_percentage = 0.01,
+                             plot = TRUE) {
   # Fit initial boosting model
   RhpcBLASctl::blas_set_num_threads(n_cores)
   offset_model <- gamboost(
@@ -34,14 +44,13 @@ gen_offset_model <- function(data, formula, mstop, nu, strata, n_cores = 1, K = 
     control = boost_control(mstop = mstop, nu = nu)
   )
 
-  if(early_stopping){
+  if (early_stopping) {
     RhpcBLASctl::blas_set_num_threads(1)
     # Generate CV folds for strata
     sim.folds <- make_cv_folds(data, strata, K = K)
     # Cross-validation
 
     if (.Platform$OS.type == "windows" && n_cores > 1) {
-
       cores <- min(n_cores, K)
       cl <- parallel::makeCluster(cores)
 
@@ -52,23 +61,14 @@ gen_offset_model <- function(data, formula, mstop, nu, strata, n_cores = 1, K = 
         parallel::parLapply(cl, X, FUN, ...)
       }
 
-      early_stopping <- cvrisk(
-        offset_model,
-        folds = sim.folds,
-        papply = myApply
-      )
+      early_stopping <- cvrisk(offset_model, folds = sim.folds, papply = myApply)
 
       parallel::stopCluster(cl)
 
     } else {
-
       cores <- min(n_cores, K)
 
-      early_stopping <- cvrisk(
-        offset_model,
-        folds = sim.folds,
-        mc.cores = cores
-      )
+      early_stopping <- cvrisk(offset_model, folds = sim.folds, mc.cores = cores)
     }
 
     early_stopping <- cvrisk(offset_model, folds = sim.folds, mc.cores = cores)
@@ -80,31 +80,36 @@ gen_offset_model <- function(data, formula, mstop, nu, strata, n_cores = 1, K = 
 
 
     opt <- mstop(early_stopping)
-  # Check if model has reached steady state
-  # (Checks the last 5 iterations and calculates a mean rolling change)
-  range_idx <- max(1, mstop - 4):mstop
-  rolling_change <- mean(
-    sapply(range_idx, function(i) {
-      (mean(early_stopping[, i]) / mean(early_stopping[, i+1]) - 1)
-    })
-  ) * 100
-  is_steady <- rolling_change < steady_state_percentage
+    # Check if model has reached steady state
+    # (Checks the last 5 iterations and calculates a mean rolling change)
+    range_idx <- max(1, mstop - 4):mstop
+    rolling_change <- mean(sapply(range_idx, function(i) {
+      (mean(early_stopping[, i]) / mean(early_stopping[, i + 1]) - 1)
+    })) * 100
+    is_steady <- rolling_change < steady_state_percentage
 
-  # Message if optimal mstop is close to or equal maximum
-  if (opt %in% (mstop-5):mstop) {
-    if(is_steady){
-      message("Optimal CV stopping iteration is near maximum, but the model is nearly stable. Should be fine!")
-    } else{
-      message("Optimal CV stopping iteration is near or equal to the maximum. Consider increasing mstop or adjusting nu.")
-       }
-  }
-  if(plot){
-    plot(early_stopping)
-  }
+    # Message if optimal mstop is close to or equal maximum
+    if (opt %in% (mstop - 5):mstop) {
+      if (is_steady) {
+        message(
+          "Optimal CV stopping iteration is near maximum, but the model is nearly stable. Should be fine!"
+        )
+      } else{
+        message(
+          "Optimal CV stopping iteration is near or equal to the maximum. Consider increasing mstop or adjusting nu."
+        )
+      }
+    }
+    if (plot) {
+      plot(early_stopping)
+    }
 
-  # Return model refitted to optimal mstop
-  return(offset_model[opt])  }
-  else{ return(offset_model)}
+    # Return model refitted to optimal mstop
+    return(offset_model[opt])
+  }
+  else{
+    return(offset_model)
+  }
 }
 
 
@@ -127,14 +132,13 @@ gen_offset_model <- function(data, formula, mstop, nu, strata, n_cores = 1, K = 
 #'
 #'
 make_cv_folds <- function(data, strata, K = 10) {
-
   strata.unique <- sample(unique(data[[strata]]))
   n.strata <- length(strata.unique)
 
   # Compute number of strata per fold
   n.fold <- rep(floor(n.strata / K), K)
   remainder <- n.strata - sum(n.fold)
-  if(remainder > 0){
+  if (remainder > 0) {
     n.fold[seq_len(remainder)] <- n.fold[seq_len(remainder)] + 1
   }
 
