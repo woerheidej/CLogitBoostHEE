@@ -103,6 +103,7 @@
 #' @import stats
 #' @import mboost
 #' @import stabs
+#' @import RhpcBLASctl
 #'
 #' @export
 
@@ -224,15 +225,6 @@ CLogitBoostingHEE <- function(
   # The start of stability selection part:
   mstop_reduced <- q * 5 * (1/nu) * reduction_scaler # reduce to gain efficiency in computation
 
-  # Fit initial boosting model
-  initial_model <- gamboost(
-    main_formula$form,
-    data = data_proc,
-    family = CLogit(),
-    control = boost_control(mstop = mstop_reduced, nu = nu),
-    offset = offset_pred
-  )
-
   stabsel_args <- list(
     initial_model,
     folds = folds,
@@ -247,13 +239,31 @@ CLogitBoostingHEE <- function(
 
   RhpcBLASctl::blas_set_num_threads(1)
 
+  if (.Platform$OS.type == "windows" && n_cores > 1) {
+
+    cores <- n_cores
+    cl <- parallel::makeCluster(cores)
+    on.exit(parallel::stopCluster(cl), add = TRUE)
+
+    parallel::clusterEvalQ(cl, {
+      library(mboost)
+    })
+
+    myApply <- function(X, FUN, ...) {
+      parallel::parLapply(cl, X, FUN, ...)
+    }
+
+    # Switch from mc.cores to papply
+    stabsel_args$mc.cores <- NULL
+    stabsel_args$papply   <- myApply
+  }
+
   stabsel_model <- tryCatch({
     withCallingHandlers(
       do.call(stabsel, stabsel_args),
       warning = function(w) {
-        # supress repetitive warnings
         if (grepl("Lapack routine dgesv|Original error message", conditionMessage(w))) {
-          invokeRestart("muffleWarning") # suppress warnings
+          invokeRestart("muffleWarning")
         }
       }
     )
@@ -261,5 +271,6 @@ CLogitBoostingHEE <- function(
     warning("Stability selection failed: ", conditionMessage(e), call. = FALSE)
     NULL
   })
+
   return(stabsel_model)
 }

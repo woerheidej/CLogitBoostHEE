@@ -228,11 +228,8 @@ plot_selection_paths <- function(sim_results, main_title = "Selection Probabilit
   # Trim leading/trailing whitespace
   new_names <- trimws(new_names)
 
-  # Assign cleaned names back
-  names(sim_results$max) <- new_names
-
   # Plot with custom title and adjusted y-axis label
-  plot(sim_results, main = main_title, xlab = "Selection Frequency")
+  pheatmap(sim_results$phat, main = main_title, labels_row = new_names, labels_col = seq(1:ncol) xlab = "Selection Frequency")
   invisible(NULL)
 }
 
