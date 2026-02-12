@@ -21,10 +21,10 @@
 #' \dontrun{
 #' offset_mod <- gen_offset_model(data, formula = "resp ~ X + Z1 + Z2", mstop = 500, nu = 0.1, strata = "strata")
 #' }
+#' @import parallel
 #' @export
 gen_offset_model <- function(data, formula, mstop, nu, strata, n_cores = 1, K = 5, early_stopping = TRUE, steady_state_percentage = 0.01, plot = TRUE) {
 
-  cores <- min(n_cores, K)
   # Fit initial boosting model
   RhpcBLASctl::blas_set_num_threads(n_cores)
   offset_model <- gamboost(
@@ -39,7 +39,46 @@ gen_offset_model <- function(data, formula, mstop, nu, strata, n_cores = 1, K = 
     # Generate CV folds for strata
     sim.folds <- make_cv_folds(data, strata, K = K)
     # Cross-validation
+
+    if (.Platform$OS.type == "windows" && n_cores > 1) {
+
+      cores <- min(n_cores, K)
+      cl <- parallel::makeCluster(cores)
+
+      # Load mboost once per worker
+      parallel::clusterEvalQ(cl, library(mboost))
+
+      myApply <- function(X, FUN, ...) {
+        parallel::parLapply(cl, X, FUN, ...)
+      }
+
+      early_stopping <- cvrisk(
+        offset_model,
+        folds = sim.folds,
+        papply = myApply
+      )
+
+      parallel::stopCluster(cl)
+
+    } else {
+
+      cores <- min(n_cores, K)
+
+      early_stopping <- cvrisk(
+        offset_model,
+        folds = sim.folds,
+        mc.cores = cores
+      )
+    }
+
     early_stopping <- cvrisk(offset_model, folds = sim.folds, mc.cores = cores)
+
+
+
+
+
+
+
     opt <- mstop(early_stopping)
   # Check if model has reached steady state
   # (Checks the last 5 iterations and calculates a mean rolling change)
