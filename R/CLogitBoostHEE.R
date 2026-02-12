@@ -144,7 +144,7 @@ CLogitBoostHEE <- function(data,
   }
 
   # Detect variable types
-  vars_info <- detect_continuous(data, exclude = c(response, strata, outcome))
+  vars_info <- detect_continuous(data, exclude = c(strata, outcome))
   cont_vars <- vars_info$cont_vars
   cat_vars  <- vars_info$cat_vars
 
