@@ -32,6 +32,8 @@ gen_offset_model(
 
 \item{K}{Integer of folds for cross-validation (default 5).}
 
+\item{early_stopping}{Logical. Toggle early stopping on or off.}
+
 \item{steady_state_percentage}{Integer Threshold for minimal improvement in CV risk
 to declare the model in steady state (default 0.01, i.e., 0.01\% change).}
 
@@ -47,6 +49,7 @@ the optimal number of boosting iterations (\code{mstop}).
 }
 \examples{
 \dontrun{
-offset_mod <- gen_offset_model(data, formula = "resp ~ X + Z1 + Z2", mstop = 500, nu = 0.1, strata = "strata")
+offset_mod <- gen_offset_model(data, formula = "resp ~ X + Z1 + Z2",
+mstop = 500, nu = 0.1, strata = "strata")
 }
 }

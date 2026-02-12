@@ -53,27 +53,24 @@
 #'       to construct the formula.}
 #'   }
 #'
+#' @import utils
 #' @export
-generate_formula <- function(
-    data,
-    exposure = NULL,
-    response = "resp",
-    strata = "strata",
-    outcome = "y",
-    matching = "s",
-    include_interactions = TRUE,
-    df_bols = 1,
-    df_bbs = 1,
-    intercept = FALSE,
-    center = TRUE,
-    flexible = TRUE,
-    singular = NULL
-) {
-
+generate_formula <- function(data,
+                             exposure = NULL,
+                             response = "resp",
+                             strata = "strata",
+                             outcome = "y",
+                             matching = "s",
+                             include_interactions = TRUE,
+                             df_bols = 1,
+                             df_bbs = 1,
+                             intercept = FALSE,
+                             center = TRUE,
+                             flexible = TRUE,
+                             singular = NULL) {
   vars <- setdiff(names(data), c(response, strata, outcome, matching))
   is_cont <- sapply(data[, vars, drop = FALSE], function(x)
-    is.numeric(x) && length(unique(x)) > 2
-  )
+    is.numeric(x) && length(unique(x)) > 2)
 
   cont_vars <- vars[is_cont]
   cat_vars  <- vars[!is_cont]
@@ -81,43 +78,38 @@ generate_formula <- function(
   make_term <- function(type, var) {
     switch(
       type,
-      bols = paste0("bols(", var,
-                    ", intercept = ", intercept,
-                    ", df = ", df_bols, ")"),
-      bbs  = paste0("bbs(", var,
-                    ", df = ", df_bbs,
-                    ", center = ", center, ")")
+      bols = paste0("bols(", var, ", intercept = ", intercept, ", df = ", df_bols, ")"),
+      bbs  = paste0("bbs(", var, ", df = ", df_bbs, ", center = ", center, ")")
     )
   }
 
-  base_terms <- c(
-    vapply(cat_vars,  make_term, "", type = "bols"),
-    if (flexible) {
-      c(
-        vapply(cont_vars, make_term, "", type = "bols"),
-        vapply(cont_vars, make_term, "", type = "bbs")
-      )
-    } else {
-      vapply(cont_vars, make_term, "", type = "bols")
-    }
-  )
+  base_terms <- c(vapply(cat_vars, make_term, "", type = "bols"), if (flexible) {
+    c(
+      vapply(cont_vars, make_term, "", type = "bols"),
+      vapply(cont_vars, make_term, "", type = "bbs")
+    )
+  } else {
+    vapply(cont_vars, make_term, "", type = "bols")
+  })
 
   interaction_terms <- character(0)
   if (include_interactions) {
-
     if (!is.null(exposure) && exposure %in% vars) {
       # Interactions only with exposure
       inter_vars <- setdiff(c(vars, matching), c(exposure, singular))
 
-      interaction_terms <- vapply(
-        inter_vars,
-        function(v)
-          paste0("bols(", exposure,
-                 ", by = ", v,
-                 ", intercept = ", intercept,
-                 ", df = ", df_bols, ")"),
-        character(1)
-      )
+      interaction_terms <- vapply(inter_vars, function(v)
+        paste0(
+          "bols(",
+          exposure,
+          ", by = ",
+          v,
+          ", intercept = ",
+          intercept,
+          ", df = ",
+          df_bols,
+          ")"
+        ), character(1))
 
     } else {
       # exposure is NULL => include all pairwise interactions among vars + matching
@@ -127,19 +119,22 @@ generate_formula <- function(
       combs <- t(combn(all_vars, 2))
 
       interaction_terms <- apply(combs, 1, function(pair) {
-        paste0(
-          "bols(", pair[1], ", by = ", pair[2],
-          ", intercept = ", intercept,
-          ", df = ", df_bols, ")"
-        )
+        paste0("bols(",
+               pair[1],
+               ", by = ",
+               pair[2],
+               ", intercept = ",
+               intercept,
+               ", df = ",
+               df_bols,
+               ")")
       })
     }
   }
 
   terms <- c(base_terms, interaction_terms)
 
-  list(
-    form = as.formula(paste(response, "~", paste(terms, collapse = " + "))),
-    all_terms = terms
-  )
+  list(form = as.formula(paste(
+    response, "~", paste(terms, collapse = " + ")
+  )), all_terms = terms)
 }

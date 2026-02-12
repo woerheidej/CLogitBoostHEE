@@ -107,42 +107,46 @@
 #'
 #' @export
 
-CLogitBoostingHEE <- function(
-    data,
-    exposure = NULL,
-    response = "resp",
-    strata = "strata",
-    outcome = "y",
-    matching = NULL,
-    q = NULL,
-    PFER = NULL,
-    cutoff = NULL,
-    nu = 1,
-    mstop = 2000,
-    B = 50,
-    sampling_type = "SS",
-    assumption = "none",
-    n_cores = 1,
-    df_bols = 1,
-    df_bbs = 1,
-    intercept = FALSE,
-    center = TRUE,
-    flexible = TRUE,
-    reduction_scaler = 1,
-    early_stopping = TRUE
-) {
-
+CLogitBoostingHEE <- function(data,
+                              exposure = NULL,
+                              response = "resp",
+                              strata = "strata",
+                              outcome = "y",
+                              matching = NULL,
+                              q = NULL,
+                              PFER = NULL,
+                              cutoff = NULL,
+                              nu = 1,
+                              mstop = 2000,
+                              B = 50,
+                              sampling_type = "SS",
+                              assumption = "none",
+                              n_cores = 1,
+                              df_bols = 1,
+                              df_bbs = 1,
+                              intercept = FALSE,
+                              center = TRUE,
+                              flexible = TRUE,
+                              reduction_scaler = 1,
+                              early_stopping = TRUE) {
   # Stability selection parameter check:
-  provided <- c(q = !is.null(q), PFER = !is.null(PFER), cutoff = !is.null(cutoff))
+  provided <- c(
+    q = !is.null(q),
+    PFER = !is.null(PFER),
+    cutoff = !is.null(cutoff)
+  )
   n_provided <- sum(provided)
   if (n_provided != 2) {
-    stop(sprintf(
-      "Exactly two of 'q', 'PFER', and 'cutoff' must be specified, but you provided %d:\n  q = %s, PFER = %s, cutoff = %s",
-      n_provided,
-      ifelse(is.null(q), "NULL", q),
-      ifelse(is.null(PFER), "NULL", PFER),
-      ifelse(is.null(cutoff), "NULL", cutoff)
-    ), call. = FALSE)
+    stop(
+      sprintf(
+        "Exactly two of 'q', 'PFER', and 'cutoff' must be specified, but you provided %d:\n  q = %s, PFER = %s, cutoff = %s",
+        n_provided,
+        ifelse(is.null(q), "NULL", q),
+        ifelse(is.null(PFER), "NULL", PFER),
+        ifelse(is.null(cutoff), "NULL", cutoff)
+      ),
+      call. = FALSE
+    )
   }
 
   # Detect variable types
@@ -170,7 +174,15 @@ CLogitBoostingHEE <- function(
     flexible = flexible,
     include_interactions = FALSE
   )
-  offset.cv <- gen_offset_model(data = data_proc, formula = offset_formula$form, mstop = mstop, nu = nu, strata = strata, n_cores = n_cores, early_stopping = early_stopping)
+  offset.cv <- gen_offset_model(
+    data = data_proc,
+    formula = offset_formula$form,
+    mstop = mstop,
+    nu = nu,
+    strata = strata,
+    n_cores = n_cores,
+    early_stopping = early_stopping
+  )
   offset_pred <- predict(offset.cv, type = "link")
 
   # Create stratified folds
@@ -193,16 +205,21 @@ CLogitBoostingHEE <- function(
 
   if (length(singular_cols) > 0) {
     # Generate informative message
-    singular_msg <- paste0(
-      singular_cols,
-      " (", singularity[singular_cols], " fold", ifelse(singularity[singular_cols] > 1, "s", ""), ")"
-    )
-      warning(sprintf(
+    singular_msg <- paste0(singular_cols,
+                           " (",
+                           singularity[singular_cols],
+                           " fold",
+                           ifelse(singularity[singular_cols] > 1, "s", ""),
+                           ")")
+    warning(
+      sprintf(
         "Some columns are constant (singular) in at least one fold: %s. They are removed from HEE analysis.",
         paste(singular_msg, collapse = ", ")
-      ), call. = FALSE)
+      ),
+      call. = FALSE
+    )
 
-}
+  }
 
 
 
@@ -223,7 +240,16 @@ CLogitBoostingHEE <- function(
 
 
   # The start of stability selection part:
-  mstop_reduced <- q * 5 * (1/nu) * reduction_scaler # reduce to gain efficiency in computation
+  mstop_reduced <- q * 5 * (1 / nu) * reduction_scaler # reduce to gain efficiency in computation
+
+  # Fit initial boosting model
+  initial_model <- gamboost(
+    main_formula$form,
+    data = data_proc,
+    family = CLogit(),
+    control = boost_control(mstop = mstop_reduced, nu = nu),
+    offset = offset_pred
+  )
 
   stabsel_args <- list(
     initial_model,
@@ -233,14 +259,17 @@ CLogitBoostingHEE <- function(
     B = B,
     mc.cores = n_cores
   )
-  if (!is.null(q))      stabsel_args$q      <- q
-  if (!is.null(PFER))   stabsel_args$PFER   <- PFER
-  if (!is.null(cutoff)) stabsel_args$cutoff <- cutoff
+
+  if (!is.null(q))
+    stabsel_args$q      <- q
+  if (!is.null(PFER))
+    stabsel_args$PFER   <- PFER
+  if (!is.null(cutoff))
+    stabsel_args$cutoff <- cutoff
 
   RhpcBLASctl::blas_set_num_threads(1)
 
   if (.Platform$OS.type == "windows" && n_cores > 1) {
-
     cores <- n_cores
     cl <- parallel::makeCluster(cores)
     on.exit(parallel::stopCluster(cl), add = TRUE)
@@ -262,7 +291,8 @@ CLogitBoostingHEE <- function(
     withCallingHandlers(
       do.call(stabsel, stabsel_args),
       warning = function(w) {
-        if (grepl("Lapack routine dgesv|Original error message", conditionMessage(w))) {
+        if (grepl("Lapack routine dgesv|Original error message",
+                  conditionMessage(w))) {
           invokeRestart("muffleWarning")
         }
       }

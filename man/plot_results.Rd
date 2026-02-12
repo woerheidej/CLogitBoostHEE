@@ -4,10 +4,10 @@
 \alias{plot_results}
 \title{Plot Stability Selection Results with Cleaned Variable Names}
 \usage{
-plot_results(sim_results, main_title = "Results of Stability Selection")
+plot_results(results, main_title = "Results of Stability Selection")
 }
 \arguments{
-\item{sim_results}{A \code{stabsel} object returned from a stability
+\item{results}{A \code{stabsel} object returned from a stability
 selection procedure (e.g., the output of \code{CLogitBoostingHEE}).}
 
 \item{main_title}{Character string specifying the plot title. Default

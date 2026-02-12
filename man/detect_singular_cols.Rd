@@ -21,6 +21,8 @@ detect_singular_cols(
 
 \item{response}{Character name of response variable.}
 
+\item{outcome}{Charcater name of the outcome variable.}
+
 \item{strata}{Character name of strata variable.}
 
 \item{folds}{Binary matrix of complementary folds (rows = obs, cols = folds).}

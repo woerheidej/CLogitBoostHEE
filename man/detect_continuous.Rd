@@ -8,6 +8,8 @@ detect_continuous(df, exclude = c())
 }
 \arguments{
 \item{df}{A data.frame containing all data.}
+
+\item{exclude}{A list of variable names to exclude}
 }
 \value{
 Two lists, continuous variables, and categorical ones.
