@@ -125,7 +125,7 @@ interaction_const <- function(x, z) {
 #' gradient bars and layout, with a customizable title.
 #'
 #' @param results A `stabsel` object returned from a stability
-#'   selection procedure (e.g., the output of `CLogitBoostingHEE`).
+#'   selection procedure (e.g., the output of `CLogitBoostHEE`).
 #'
 #' @param main_title Character string specifying the plot title. Default
 #'   is `"Results of Stability Selection"`.
@@ -186,7 +186,7 @@ plot_results <- function(results, main_title = "Results of Stability Selection")
 #' gradient bars and layout, with a customizable title.
 #'
 #' @param results A `stabsel` object returned from a stability
-#'   selection procedure (e.g., the output of `CLogitBoostingHEE`).
+#'   selection procedure (e.g., the output of `CLogitBoostHEE`).
 #'
 #' @param main_title Character string specifying the plot title. Default
 #'   is `"Results of Stability Selection"`.

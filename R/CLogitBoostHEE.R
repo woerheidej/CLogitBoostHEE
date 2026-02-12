@@ -15,10 +15,6 @@
 #' @param exposure Character string giving the exposure variable name.
 #'   Can be set to `NULL` for detection of heterogeneous effects in general.
 #'
-#' @param response Character string giving the response variable used in
-#'   boosting (default `"resp"`). Typically a two-column matrix with
-#'   outcome and strata.
-#'
 #' @param strata Character string giving the strata variable used for a
 #'   matched case–control design.
 #'
@@ -87,11 +83,10 @@
 #'
 #' @examples
 #' \dontrun{
-#' data_sim <- create_data()
-#' stab_model <- CLogitBoostingHEE(
+#' data(sim)
+#' sim_results <- CLogitBoostHEE(
 #'   data_sim$data,
 #'   exposure = "X",
-#'   response = "resp",
 #'   strata = "strata",
 #'   outcome = "y",
 #'   q = 5,
@@ -107,9 +102,8 @@
 #'
 #' @export
 
-CLogitBoostingHEE <- function(data,
+CLogitBoostHEE <- function(data,
                               exposure = NULL,
-                              response = "resp",
                               strata = "strata",
                               outcome = "y",
                               matching = NULL,
@@ -150,7 +144,6 @@ CLogitBoostingHEE <- function(data,
   }
 
   # Detect variable types
-  vars_info <- detect_continuous(data, exclude = c(response, strata, outcome))
   cont_vars <- vars_info$cont_vars
   cat_vars  <- vars_info$cat_vars
 
@@ -165,7 +158,7 @@ CLogitBoostingHEE <- function(data,
   offset_formula <- generate_formula(
     data = data_proc,
     exposure = exposure,
-    response = response,
+    response = "resp",
     strata = strata,
     df_bols = df_bols,
     df_bbs = df_bbs,
@@ -197,7 +190,7 @@ CLogitBoostingHEE <- function(data,
     data_proc = data_proc,
     exposure = exposure,
     outcome = outcome,
-    response = response,
+    response = "resp",
     strata = strata,
     folds = folds
   )
@@ -227,7 +220,7 @@ CLogitBoostingHEE <- function(data,
   main_formula <- generate_formula(
     data = data_proc,
     exposure = exposure,
-    response = response,
+    response = "resp",
     strata = strata,
     df_bols = df_bols,
     df_bbs = df_bbs,

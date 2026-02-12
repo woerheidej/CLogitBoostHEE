@@ -8,7 +8,7 @@ plot_results(results, main_title = "Results of Stability Selection")
 }
 \arguments{
 \item{results}{A \code{stabsel} object returned from a stability
-selection procedure (e.g., the output of \code{CLogitBoostingHEE}).}
+selection procedure (e.g., the output of \code{CLogitBoostHEE}).}
 
 \item{main_title}{Character string specifying the plot title. Default
 is \code{"Results of Stability Selection"}.}
