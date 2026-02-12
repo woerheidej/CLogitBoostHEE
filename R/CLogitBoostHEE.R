@@ -50,7 +50,7 @@
 #'
 #' @param assumption Character string specifying the error-bound assumption
 #'   used for complementary pairs stability selection. One of `"none"`,
-#'   `"unimodal"`, or `"rconcave"`.
+#'   `"unimodal"`, or `"r-concave"` (default `r-concave`).
 #'
 #' @param n_cores Integer giving the number of CPU cores used for parallel
 #'   stability selection (default `1`).
@@ -114,7 +114,7 @@ CLogitBoostHEE <- function(data,
                               mstop = 2000,
                               B = 50,
                               sampling_type = "SS",
-                              assumption = "none",
+                              assumption = "r-concave",
                               n_cores = 1,
                               df_bols = 1,
                               df_bbs = 1,
