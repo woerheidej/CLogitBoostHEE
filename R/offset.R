@@ -71,14 +71,6 @@ gen_offset_model <- function(data,
       early_stopping <- cvrisk(offset_model, folds = sim.folds, mc.cores = cores)
     }
 
-    early_stopping <- cvrisk(offset_model, folds = sim.folds, mc.cores = cores)
-
-
-
-
-
-
-
     opt <- mstop(early_stopping)
     # Check if model has reached steady state
     # (Checks the last 5 iterations and calculates a mean rolling change)
