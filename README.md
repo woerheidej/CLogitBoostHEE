@@ -10,14 +10,14 @@ The package can be installed in R via
 
 ``` r
 install.packages("devtools")
-devtools::install_github("woerheidej/CLogitBoostingHEE")
+devtools::install_github("woerheidej/CLogitBoostHEE")
 ```
 
 # Example CLogitBoostHEE
 
 ``` r
 library(CLogitBoostHEE)
-data("sim_data")
+data("sim")
 
 set.seed(1899)
 sim_results <- CLogitBoostHEE(
