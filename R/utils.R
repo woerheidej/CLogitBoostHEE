@@ -238,7 +238,9 @@ plot_selection_paths <- function(results, main_title = "Selection Probability") 
     main = main_title,
     labels_row = new_names,
     labels_col = seq(1:ncol(results$phat)),
-    xlab = "Selection Frequency"
+    xlab = "Selection Frequency",
+    cluster_rows = FALSE,
+    cluster_cols = FALSE
   )
   invisible(NULL)
 }
