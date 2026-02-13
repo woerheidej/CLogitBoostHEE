@@ -74,7 +74,7 @@
 #'
 #' @param reduction_scaler Numeric used to scale the reduced `mstop` in
 #'   stability selection according to
-#'   \code{q * 5 * (1 / nu) * reduction_scaler}.
+#'   \code{q * 10 * (1 / nu) * reduction_scaler}.
 #'
 #' @param early_stopping Logical indicating whether the offset model should
 #'   be refined via early stopping. Can be disabled for high-dimensional
@@ -177,8 +177,7 @@ CLogitBoostHEE <- function(data,
     nu = nu,
     strata = strata,
     n_cores = n_cores,
-    early_stopping = early_stopping,
-    save_cv = save_cv
+    early_stopping = early_stopping
   )
   offset_pred <- predict(offset.cv, type = "link")
 
