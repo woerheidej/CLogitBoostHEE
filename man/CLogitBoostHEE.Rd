@@ -25,8 +25,7 @@ CLogitBoostHEE(
   center = TRUE,
   flexible = TRUE,
   reduction_scaler = 1,
-  early_stopping = TRUE,
-  save_cv = FALSE
+  early_stopping = TRUE
 )
 }
 \arguments{
@@ -95,14 +94,11 @@ learners are included for continuous covariates (default \code{TRUE}).}
 
 \item{reduction_scaler}{Numeric used to scale the reduced \code{mstop} in
 stability selection according to
-\code{q * 5 * (1 / nu) * reduction_scaler}.}
+\code{q * 10 * (1 / nu) * reduction_scaler}.}
 
 \item{early_stopping}{Logical indicating whether the offset model should
 be refined via early stopping. Can be disabled for high-dimensional
 data to reduce runtime (default \code{TRUE}).}
-
-\item{save_cv}{Logical indicating whether the cross-validated early stopping
-object should be saved for later analysis.}
 }
 \value{
 A \code{stabsel} object containing the selected variables and their
