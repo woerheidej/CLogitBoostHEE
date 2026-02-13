@@ -237,7 +237,7 @@ plot_selection_paths <- function(results, main_title = "Selection Probability") 
     results$phat,
     main = main_title,
     labels_row = new_names,
-    labels_col = seq(1:ncol),
+    labels_col = seq(1:ncol(results$phat)),
     xlab = "Selection Frequency"
   )
   invisible(NULL)

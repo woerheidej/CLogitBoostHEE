@@ -61,22 +61,22 @@ gen_offset_model <- function(data,
         parallel::parLapply(cl, X, FUN, ...)
       }
 
-      early_stopping <- cvrisk(offset_model, folds = sim.folds, papply = myApply)
+      cv_stopping <- cvrisk(offset_model, folds = sim.folds, papply = myApply)
 
       parallel::stopCluster(cl)
 
     } else {
       cores <- min(n_cores, K)
 
-      early_stopping <- cvrisk(offset_model, folds = sim.folds, mc.cores = cores)
+      cv_stopping <- cvrisk(offset_model, folds = sim.folds, mc.cores = cores)
     }
 
-    opt <- mstop(early_stopping)
+    opt <- mstop(cv_stopping)
     # Check if model has reached steady state
     # (Checks the last 5 iterations and calculates a mean rolling change)
     range_idx <- max(1, mstop - 4):mstop
     rolling_change <- mean(sapply(range_idx, function(i) {
-      (mean(early_stopping[, i]) / mean(early_stopping[, i + 1]) - 1)
+      (mean(cv_stopping[, i]) / mean(cv_stopping[, i + 1]) - 1)
     })) * 100
     is_steady <- rolling_change < steady_state_percentage
 
@@ -93,7 +93,7 @@ gen_offset_model <- function(data,
       }
     }
     if (plot) {
-      plot(early_stopping)
+      plot(cv_stopping, main = "CV Early Stopping")
     }
 
     # Return model refitted to optimal mstop

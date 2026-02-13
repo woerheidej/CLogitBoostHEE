@@ -53,7 +53,9 @@
 #'   `"unimodal"`, or `"r-concave"` (default `r-concave`).
 #'
 #' @param n_cores Integer giving the number of CPU cores used for parallel
-#'   stability selection (default `1`).
+#'   stability selection (default `1`). Be careful when choosing more than one core
+#'   in scenarios with multiple thousands of observations or hundreds of parameters
+#'   due to RAM bottleneck.
 #'
 #' @param df_bols Integer giving the degrees of freedom for linear base
 #'   learners.
@@ -85,10 +87,11 @@
 #' \dontrun{
 #' data(sim)
 #' sim_results <- CLogitBoostHEE(
-#'   data_sim$data,
+#'   sim$data,
 #'   exposure = "X",
 #'   strata = "strata",
 #'   outcome = "y",
+#'   matching = "s",
 #'   q = 5,
 #'   PFER = 0.1,
 #'   cutoff = NULL
@@ -149,15 +152,14 @@ CLogitBoostHEE <- function(data,
   cat_vars  <- vars_info$cat_vars
 
   # Preprocess data
-  data_proc <- data
-  data_proc[cat_vars] <- lapply(data_proc[cat_vars], factor)
-  data_proc[cont_vars] <- scale(data_proc[cont_vars])
+  data[cat_vars] <- lapply(data[cat_vars], factor)
+  data[cont_vars] <- scale(data[cont_vars])
   # Create response variable:
-  data_proc$resp <- cbind(data_proc[[outcome]], data_proc[[strata]])
+  data$resp <- cbind(data[[outcome]], data[[strata]])
 
   # Generate offset model and predictions
   offset_formula <- generate_formula(
-    data = data_proc,
+    data = data,
     exposure = exposure,
     response = "resp",
     strata = strata,
@@ -169,26 +171,27 @@ CLogitBoostHEE <- function(data,
     include_interactions = FALSE
   )
   offset.cv <- gen_offset_model(
-    data = data_proc,
+    data = data,
     formula = offset_formula$form,
     mstop = mstop,
     nu = nu,
     strata = strata,
     n_cores = n_cores,
-    early_stopping = early_stopping
+    early_stopping = early_stopping,
+    save_cv = save_cv
   )
   offset_pred <- predict(offset.cv, type = "link")
 
   # Create stratified folds
-  strata_vec <- data_proc[[strata]]
-  folds <- matrix(0, ncol = B, nrow = nrow(data_proc))
+  strata_vec <- data[[strata]]
+  folds <- matrix(0, ncol = B, nrow = nrow(data))
   for (j in 1:B) {
     smp <- sample(unique(strata_vec), floor(length(unique(strata_vec)) / 2))
     folds[strata_vec %in% smp, j] <- 1
   }
 
   singularity <- detect_singular_cols(
-    data_proc = data_proc,
+    data = data,
     exposure = exposure,
     outcome = outcome,
     response = "resp",
@@ -219,7 +222,7 @@ CLogitBoostHEE <- function(data,
 
   # Main formula
   main_formula <- generate_formula(
-    data = data_proc,
+    data = data,
     exposure = exposure,
     response = "resp",
     strata = strata,
@@ -234,12 +237,12 @@ CLogitBoostHEE <- function(data,
 
 
   # The start of stability selection part:
-  mstop_reduced <- q * 5 * (1 / nu) * reduction_scaler # reduce to gain efficiency in computation
+  mstop_reduced <- q * 10 * (1 / nu) * reduction_scaler # reduce to gain efficiency in computation
 
   # Fit initial boosting model
   initial_model <- gamboost(
     main_formula$form,
-    data = data_proc,
+    data = data,
     family = CLogit(),
     control = boost_control(mstop = mstop_reduced, nu = nu),
     offset = offset_pred
@@ -265,6 +268,8 @@ CLogitBoostHEE <- function(data,
 
   if (.Platform$OS.type == "windows" && n_cores > 1) {
     cores <- n_cores
+
+    # Run with the chunk.size argument
     cl <- parallel::makeCluster(cores)
     on.exit(parallel::stopCluster(cl), add = TRUE)
 
@@ -295,6 +300,8 @@ CLogitBoostHEE <- function(data,
     warning("Stability selection failed: ", conditionMessage(e), call. = FALSE)
     NULL
   })
+
+  stabsel_model$call <- NULL
 
   return(stabsel_model)
 }

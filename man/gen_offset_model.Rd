@@ -14,7 +14,8 @@ gen_offset_model(
   K = 5,
   early_stopping = TRUE,
   steady_state_percentage = 0.01,
-  plot = TRUE
+  plot = TRUE,
+  save_cv = FALSE
 )
 }
 \arguments{
@@ -38,6 +39,9 @@ gen_offset_model(
 to declare the model in steady state (default 0.01, i.e., 0.01\% change).}
 
 \item{plot}{Logical. If the CV of the offset should be printed.}
+
+\item{save_cv}{Logical. It indicates whether the cross-validated early stopping
+object should be saved for analysis.}
 }
 \value{
 A fitted \code{gamboost} object with optimal number of iterations.

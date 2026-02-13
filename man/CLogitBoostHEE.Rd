@@ -17,7 +17,7 @@ CLogitBoostHEE(
   mstop = 2000,
   B = 50,
   sampling_type = "SS",
-  assumption = "none",
+  assumption = "r-concave",
   n_cores = 1,
   df_bols = 1,
   df_bbs = 1,
@@ -25,7 +25,8 @@ CLogitBoostHEE(
   center = TRUE,
   flexible = TRUE,
   reduction_scaler = 1,
-  early_stopping = TRUE
+  early_stopping = TRUE,
+  save_cv = FALSE
 )
 }
 \arguments{
@@ -70,10 +71,12 @@ selection or \code{"MB"} for the original Meinshausen & Bühlmann approach
 
 \item{assumption}{Character string specifying the error-bound assumption
 used for complementary pairs stability selection. One of \code{"none"},
-\code{"unimodal"}, or \code{"rconcave"}.}
+\code{"unimodal"}, or \code{"r-concave"} (default \code{r-concave}).}
 
 \item{n_cores}{Integer giving the number of CPU cores used for parallel
-stability selection (default \code{1}).}
+stability selection (default \code{1}). Be careful when choosing more than one core
+in scenarios with multiple thousands of observations or hundreds of parameters
+due to RAM bottleneck.}
 
 \item{df_bols}{Integer giving the degrees of freedom for linear base
 learners.}
@@ -97,6 +100,9 @@ stability selection according to
 \item{early_stopping}{Logical indicating whether the offset model should
 be refined via early stopping. Can be disabled for high-dimensional
 data to reduce runtime (default \code{TRUE}).}
+
+\item{save_cv}{Logical indicating whether the cross-validated early stopping
+object should be saved for later analysis.}
 }
 \value{
 A \code{stabsel} object containing the selected variables and their
@@ -117,10 +123,11 @@ model, and applies stability selection using \code{stabsel}.
 \dontrun{
 data(sim)
 sim_results <- CLogitBoostHEE(
-  data_sim$data,
+  sim$data,
   exposure = "X",
   strata = "strata",
   outcome = "y",
+  matching = "s",
   q = 5,
   PFER = 0.1,
   cutoff = NULL
