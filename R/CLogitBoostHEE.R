@@ -128,7 +128,8 @@ CLogitBoostHEE <- function(data,
                               early_stopping = TRUE,
                               only_boosting = FALSE,
                               boosting_interactions = NULL) {
-  # Stability selection parameter check:
+
+  if(only_boosting == FALSE){ # Stability selection parameter check:
   provided <- c(
     q = !is.null(q),
     PFER = !is.null(PFER),
@@ -146,7 +147,7 @@ CLogitBoostHEE <- function(data,
       ),
       call. = FALSE
     )
-  }
+  }}
 
   # Detect variable types
   vars_info <- detect_continuous(data, exclude = c(strata, outcome))
@@ -182,7 +183,7 @@ CLogitBoostHEE <- function(data,
     n_cores = n_cores,
     early_stopping = early_stopping
   )
-  if(boosting_only){
+  if(only_boosting){
     return(offset.cv)
   }
   offset_pred <- predict(offset.cv, type = "link")
