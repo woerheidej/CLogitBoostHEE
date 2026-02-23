@@ -125,7 +125,9 @@ CLogitBoostHEE <- function(data,
                               center = TRUE,
                               flexible = TRUE,
                               reduction_scaler = 1,
-                              early_stopping = TRUE) {
+                              early_stopping = TRUE,
+                              only_boosting = FALSE,
+                              boosting_interactions = NULL) {
   # Stability selection parameter check:
   provided <- c(
     q = !is.null(q),
@@ -168,7 +170,9 @@ CLogitBoostHEE <- function(data,
     outcome = outcome,
     matching = matching,
     flexible = flexible,
-    include_interactions = FALSE
+    include_interactions = FALSE,
+    only_boosting = only_boosting,
+    boosting_interactions = boosting_interactions
   )
   offset.cv <- gen_offset_model(
     data = data,
@@ -179,6 +183,9 @@ CLogitBoostHEE <- function(data,
     n_cores = n_cores,
     early_stopping = early_stopping
   )
+  if(boosting_only){
+    return(offset.cv)
+  }
   offset_pred <- predict(offset.cv, type = "link")
 
   # Create stratified folds

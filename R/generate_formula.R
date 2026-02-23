@@ -67,7 +67,8 @@ generate_formula <- function(data,
                              intercept = FALSE,
                              center = TRUE,
                              flexible = TRUE,
-                             singular = NULL) {
+                             singular = NULL,
+                             boosting_interactions = NULL){
   vars <- setdiff(names(data), c(response, strata, outcome, matching))
   is_cont <- sapply(data[, vars, drop = FALSE], function(x)
     is.numeric(x) && length(unique(x)) > 2)
@@ -93,7 +94,7 @@ generate_formula <- function(data,
   })
 
   interaction_terms <- character(0)
-  if (include_interactions) {
+  if (include_interactions && is.null(boosting_interactions)) {
     if (!is.null(exposure) && exposure %in% vars) {
       # Interactions only with exposure
       inter_vars <- setdiff(c(vars, matching), c(exposure, singular))
@@ -130,6 +131,20 @@ generate_formula <- function(data,
                ")")
       })
     }
+  }
+  else if (!is.null(boosting_interactions)){
+    interaction_terms <- vapply(boosting_interactions, function(v)
+      paste0(
+        "bols(",
+        exposure,
+        ", by = ",
+        v,
+        ", intercept = ",
+        intercept,
+        ", df = ",
+        df_bols,
+        ")"
+      ), character(1))
   }
 
   terms <- c(base_terms, interaction_terms)
