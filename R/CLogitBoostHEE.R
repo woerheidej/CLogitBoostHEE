@@ -171,7 +171,6 @@ CLogitBoostHEE <- function(data,
     matching = matching,
     flexible = flexible,
     include_interactions = FALSE,
-    only_boosting = only_boosting,
     boosting_interactions = boosting_interactions
   )
   offset.cv <- gen_offset_model(
