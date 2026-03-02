@@ -32,39 +32,57 @@ detect_continuous <- function(df, exclude = c()) {
 #' @return Character vector of column names that are constant in at least one fold.
 #'
 detect_singular_cols <- function(data_proc,
-                                 exposure,
+                                 exposure = NULL,
                                  response,
                                  outcome,
                                  strata,
                                  folds,
                                  sampling_type = "SS") {
+
   vars_to_check <- setdiff(names(data_proc), c(response, strata, outcome))
 
   const_by_pair <- sapply(vars_to_check, function(v) {
-    # Count number of folds where variable or its interaction is constant
+
+    # Define interaction partners
+    if (is.null(exposure)) {
+      partners <- setdiff(vars_to_check, v)
+    } else {
+      partners <- exposure
+    }
+
     sum(sapply(seq_len(ncol(folds)), function(j) {
+
       idx1 <- folds[, j] == 1
+      idx2 <- folds[, j] == 0
+
       x1 <- data_proc[[v]][idx1]
-      x3 <- data_proc[[exposure]][idx1]
+      x2 <- data_proc[[v]][idx2]
 
-      # Check whether the variable is constant in the fold
+      # Check if variable itself is constant
       v1_const <- length(unique(x1[!is.na(x1)])) <= 1
-      # Check whether the interaction with the exposure is constant in the fold
-      v3_const <- interaction_const(x1, x3)
-      # Default to v2_const & v4_const FALSE to comply with the logic
       v2_const <- FALSE
-      v4_const <- FALSE
 
-      # Do the same for the complementary pair if appropriate
       if (sampling_type == "SS") {
-        idx2 <- folds[, j] == 0
-        x2 <- data_proc[[v]][idx2]
-        x4 <- data_proc[[exposure]][idx2]
         v2_const <- length(unique(x2[!is.na(x2)])) <= 1
-        v4_const <- interaction_const(x2, x4)
       }
 
-      # 0 = not constant, 1 = constant in one fold, 2 = constant in both folds
+      # Check interactions
+      interaction_const_fold <- function(idx) {
+        x_main <- data_proc[[v]][idx]
+
+        any(sapply(partners, function(p) {
+          x_partner <- data_proc[[p]][idx]
+          interaction_const(x_main, x_partner)
+        }))
+      }
+
+      v3_const <- interaction_const_fold(idx1)
+      v4_const <- FALSE
+
+      if (sampling_type == "SS") {
+        v4_const <- interaction_const_fold(idx2)
+      }
+
       sum((v1_const | v3_const), (v2_const | v4_const))
     }))
   })

@@ -80,6 +80,12 @@
 #'   be refined via early stopping. Can be disabled for high-dimensional
 #'   data to reduce runtime (default `TRUE`).
 #'
+#' @param only_boosting Logical indicating whether only Boosting should be run.
+#'   Used after the initial stabsel step (default `FALSE`).
+#'
+#' @param boosting_interactions List indicating which interactions should be included.
+#'   Only meaningful if `only_boosting` is `TRUE`.
+#'
 #' @return A `stabsel` object containing the selected variables and their
 #'   selection probabilities.
 #'
