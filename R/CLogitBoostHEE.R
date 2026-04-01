@@ -80,6 +80,12 @@
 #'   be refined via early stopping. Can be disabled for high-dimensional
 #'   data to reduce runtime (default `TRUE`).
 #'
+#' @param only_boosting Logical indicating whether only Boosting should be run.
+#'   Used after the initial stabsel step (default `FALSE`).
+#'
+#' @param boosting_interactions List indicating which interactions should be included.
+#'   Only meaningful if `only_boosting` is `TRUE`.
+#'
 #' @return A `stabsel` object containing the selected variables and their
 #'   selection probabilities.
 #'
@@ -129,7 +135,7 @@ CLogitBoostHEE <- function(data,
                               only_boosting = FALSE,
                               boosting_interactions = NULL) {
 
-  if(only_boosting == FALSE){ # Stability selection parameter check:
+  if(!only_boosting){ # Stability selection parameter check:
   provided <- c(
     q = !is.null(q),
     PFER = !is.null(PFER),
@@ -156,7 +162,7 @@ CLogitBoostHEE <- function(data,
 
   # Preprocess data
   data[cat_vars] <- lapply(data[cat_vars], factor)
-  data[cont_vars] <- scale(data[cont_vars])
+  if(!only_boosting){data[cont_vars] <- scale(data[cont_vars])} else{data[cont_vars] <- scale(data[cont_vars], scale = FALSE)}
   # Create response variable:
   data$resp <- cbind(data[[outcome]], data[[strata]])
 
