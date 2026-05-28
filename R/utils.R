@@ -145,8 +145,8 @@ interaction_const <- function(x, z) {
 #' @param results A `stabsel` object returned from a stability
 #'   selection procedure (e.g., the output of `CLogitBoostHEE`).
 #'
-#' @param main_title Character string specifying the plot title. Default
-#'   is `"Results of Stability Selection"`.
+#' @param remove_patterns A `list` object that is not mandatory but can be
+#' specified to remove certain parts of baselearner nomenclature.
 #'
 #' @return Invisibly returns `NULL`. Generates a plot of the stability
 #'   selection results.
@@ -155,44 +155,55 @@ interaction_const <- function(x, z) {
 #' \dontrun{
 #' # Suppose stab_model is a stabsel object from your analysis
 #' plot_results(stab_model)
-#' plot_results(stab_model, main_title = "HEE Selection Probabilities")
 #' }
 #'
 #' @import stabs
 #' @export
-plot_results <- function(results, main_title = "Results of Stability Selection") {
+plot_results <- function(results, remove_patterns = NULL, ...) {
+
   # Check that results is a stabsel object
   if (!inherits(results, "stabsel")) {
     stop("results must be a 'stabsel' object.")
   }
 
-  # Clean variable names:
+  if (is.null(results$max)) {
+    stop("results$max is missing.")
+  }
+
+  if (is.null(names(results$max))) {
+    stop("results$max has no names to clean.")
+  }
+
+  # Extract names
   new_names <- names(results$max)
 
-  # Remove df = <number>
+  # Fixed cleaning rules
   new_names <- gsub("df = [0-9]+", "", new_names)
-
-  # Remove center = TRUE/FALSE
   new_names <- gsub("center = (TRUE|FALSE)", "", new_names)
-
-  # Remove intercept = TRUE/FALSE
   new_names <- gsub("intercept = (TRUE|FALSE)", "", new_names)
-
-  # Remove commas and extra =
   new_names <- gsub(",", "", new_names)
   new_names <- gsub(" =", "", new_names)
-
-  # Remove trailing double spaces before closing parentheses
-  new_names <- gsub("  \\)", ")", new_names)
-
-  # Trim leading/trailing whitespace
+  new_names <- gsub("\\s+\\)", ")", new_names)
   new_names <- trimws(new_names)
+
+  # Optional user-defined cleaning rules
+  if (!is.null(remove_patterns)) {
+    if (!is.character(remove_patterns)) {
+      stop("remove_patterns must be a character vector of regex patterns.")
+    }
+
+    for (pat in remove_patterns) {
+      new_names <- gsub(pat, "", new_names)
+    }
+
+    new_names <- trimws(new_names)
+  }
 
   # Assign cleaned names back
   names(results$max) <- new_names
 
-  # Plot with custom title and adjusted y-axis label
-  plot(results, main = main_title, xlab = "Selection Frequency")
+  # Plot
+  plot(results, ...)
   invisible(NULL)
 }
 

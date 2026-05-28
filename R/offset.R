@@ -14,7 +14,7 @@
 #' @param steady_state_percentage Integer Threshold for minimal improvement in CV risk
 #'   to declare the model in steady state (default 0.01, i.e., 0.01% change).
 #' @param n_cores Integer number of how many cores are available for CV.
-#' @param plot Logical. If the CV of the offset should be printed.
+#' @param do_plot Logical. If the CV of the offset should be printed.
 #'
 #' @return A fitted `gamboost` object with optimal number of iterations.
 #'
@@ -25,18 +25,14 @@
 #' }
 #' @import parallel
 #' @export
-gen_offset_model <- function(data,
-                             formula,
-                             mstop,
-                             nu,
-                             strata,
-                             n_cores = 1,
-                             K = 5,
+gen_offset_model <- function(data, formula, mstop, nu, strata,
+                             n_cores = 1, K = 5,
                              early_stopping = TRUE,
                              steady_state_percentage = 0.01,
-                             plot = TRUE) {
-  # Fit initial boosting model
+                             do_plot = TRUE) {
+
   RhpcBLASctl::blas_set_num_threads(n_cores)
+
   offset_model <- gamboost(
     formula,
     data = data,
@@ -44,64 +40,71 @@ gen_offset_model <- function(data,
     control = boost_control(mstop = mstop, nu = nu)
   )
 
-  if (early_stopping) {
-    RhpcBLASctl::blas_set_num_threads(1)
-    # Generate CV folds for strata
-    sim.folds <- make_cv_folds(data, strata, K = K)
-    # Cross-validation
+  coefs_initial <- coef(offset_model)
 
-    if (.Platform$OS.type == "windows" && n_cores > 1) {
-      cores <- min(n_cores, K)
-      cl <- parallel::makeCluster(cores)
+  if (!early_stopping) return(offset_model)
 
-      # Load mboost once per worker
-      parallel::clusterEvalQ(cl, library(mboost))
+  RhpcBLASctl::blas_set_num_threads(1)
+  sim.folds <- make_cv_folds(data, strata, K = K)
 
-      myApply <- function(X, FUN, ...) {
-        parallel::parLapply(cl, X, FUN, ...)
-      }
+  if (.Platform$OS.type == "windows" && n_cores > 1) {
+    cores <- min(n_cores, K)
+    cl <- parallel::makeCluster(cores)
 
-      cv_stopping <- cvrisk(offset_model, folds = sim.folds, papply = myApply)
+    parallel::clusterEvalQ(cl, library(mboost))
 
-      parallel::stopCluster(cl)
+    myApply <- function(X, FUN, ...) parallel::parLapply(cl, X, FUN, ...)
 
+    cv_stopping <- cvrisk(offset_model, folds = sim.folds, papply = myApply)
+
+    parallel::stopCluster(cl)
+  } else {
+    cores <- min(n_cores, K)
+    cv_stopping <- cvrisk(offset_model, folds = sim.folds, mc.cores = cores)
+  }
+
+  opt <- mstop(cv_stopping)
+
+  # check non-finite
+  vals <- as.numeric(cv_stopping)
+  has_nonfinite <- any(!is.finite(vals))
+
+  if (has_nonfinite) {
+    message("Non-finite CV risk values detected; diagnostics saved to cv_infinity.RData")
+    save(cv_stopping, opt, coefs_initial, file = "cv_infinity.RData")
+  }
+
+  # Robust mean CV risk per iteration (column), ignoring non-finite
+  mean_risk <- apply(cv_stopping, 2, function(x) mean(x[is.finite(x)], na.rm = TRUE))
+
+  # Steady-state check on last 5 iterations
+  last_i <- length(mean_risk)
+  idx <- max(1, last_i - 4): (last_i) # last 5 iterations
+  rolling_change <- mean(sapply(idx, function(i) {
+    (mean_risk[i-1] / mean_risk[i] - 1)
+  }), na.rm = TRUE) * 100
+
+  is_steady <- rolling_change < steady_state_percentage
+
+  if (opt >= (mstop - 5)) {
+    if (is_steady) {
+      message("Optimal mstop near max, but CV risk looks steady -> probably ok.")
     } else {
-      cores <- min(n_cores, K)
-
-      cv_stopping <- cvrisk(offset_model, folds = sim.folds, mc.cores = cores)
+      message("Optimal mstop near max and not steady -> consider increasing mstop or reducing nu.")
     }
+  }
 
-    opt <- mstop(cv_stopping)
-    # Check if model has reached steady state
-    # (Checks the last 5 iterations and calculates a mean rolling change)
-    range_idx <- max(1, mstop - 4):mstop
-    rolling_change <- mean(sapply(range_idx, function(i) {
-      (mean(cv_stopping[, i]) / mean(cv_stopping[, i + 1]) - 1)
-    })) * 100
-    is_steady <- rolling_change < steady_state_percentage
-
-    # Message if optimal mstop is close to or equal maximum
-    if (opt %in% (mstop - 5):mstop) {
-      if (is_steady) {
-        message(
-          "Optimal CV stopping iteration is near maximum, but the model is nearly stable. Should be fine!"
-        )
-      } else{
-        message(
-          "Optimal CV stopping iteration is near or equal to the maximum. Consider increasing mstop or adjusting nu."
-        )
-      }
-    }
-    if (plot) {
+  if (isTRUE(do_plot)) {
+    if (!has_nonfinite) {
       plot(cv_stopping, main = "CV Early Stopping")
+    } else {
+      # optional: plot mean finite risks instead of failing
+      plot(mean_risk, type = "l", main = "CV Early Stopping (finite mean risk)",
+           xlab = "mstop", ylab = "mean CV risk (finite only)")
     }
+  }
 
-    # Return model refitted to optimal mstop
-    return(offset_model[opt])
-  }
-  else{
-    return(offset_model)
-  }
+  return(offset_model[opt])
 }
 
 
