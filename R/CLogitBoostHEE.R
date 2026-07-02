@@ -224,8 +224,9 @@ CLogitBoostHEE <- function(data,
   msg(
     "Offset/CV model finished in",
     round(difftime(Sys.time(), t_offset, units = "mins"), 2),
-    "minutes, with a peak RAM of:", peak_offset
+    "minutes, with a peak RAM of:"
   )
+  print(peak_offset)
 
   if(only_boosting){
     msg("only_boosting = TRUE, returning boosting model")
