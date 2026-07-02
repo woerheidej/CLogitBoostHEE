@@ -108,7 +108,6 @@
 #' @import mboost
 #' @import stabs
 #' @import RhpcBLASctl
-#' @import peakRAM
 #'
 #' @export
 
@@ -211,7 +210,7 @@ CLogitBoostHEE <- function(data,
 
   t_offset <- Sys.time()
 
-  peak_offset <- peakRAM(offset.cv <- gen_offset_model(
+  offset.cv <- gen_offset_model(
     data = data,
     formula = offset_formula$form,
     mstop = mstop,
@@ -219,14 +218,13 @@ CLogitBoostHEE <- function(data,
     strata = strata,
     n_cores = n_cores,
     early_stopping = early_stopping
-  ))
+  )
 
   msg(
     "Offset/CV model finished in",
     round(difftime(Sys.time(), t_offset, units = "mins"), 2),
-    "minutes, with a peak RAM of:"
+    "minutes"
   )
-  print(peak_offset)
 
   if(only_boosting){
     msg("only_boosting = TRUE, returning boosting model")
