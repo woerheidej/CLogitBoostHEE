@@ -386,6 +386,7 @@ CLogitBoostHEE <- function(data,
 
   stabsel_model$call <- NULL
   msg("CLogitBoostHEE finished successfully")
+  msg("----------------------------------------")
 
   return(stabsel_model)
 }
