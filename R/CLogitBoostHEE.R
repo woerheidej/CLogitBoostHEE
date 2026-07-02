@@ -211,7 +211,7 @@ CLogitBoostHEE <- function(data,
 
   t_offset <- Sys.time()
 
-  peakRAM(offset.cv <- gen_offset_model(
+  peak_offset <- peakRAM(offset.cv <- gen_offset_model(
     data = data,
     formula = offset_formula$form,
     mstop = mstop,
@@ -224,7 +224,7 @@ CLogitBoostHEE <- function(data,
   msg(
     "Offset/CV model finished in",
     round(difftime(Sys.time(), t_offset, units = "mins"), 2),
-    "minutes"
+    "minutes, with a peak RAM of:", peak_offset
   )
 
   if(only_boosting){
