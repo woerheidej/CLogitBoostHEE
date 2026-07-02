@@ -4,14 +4,14 @@
 \alias{plot_results}
 \title{Plot Stability Selection Results with Cleaned Variable Names}
 \usage{
-plot_results(results, main_title = "Results of Stability Selection")
+plot_results(results, remove_patterns = NULL, ...)
 }
 \arguments{
 \item{results}{A \code{stabsel} object returned from a stability
 selection procedure (e.g., the output of \code{CLogitBoostHEE}).}
 
-\item{main_title}{Character string specifying the plot title. Default
-is \code{"Results of Stability Selection"}.}
+\item{remove_patterns}{A \code{list} object that is not mandatory but can be
+specified to remove certain parts of baselearner nomenclature.}
 }
 \value{
 Invisibly returns \code{NULL}. Generates a plot of the stability
@@ -27,7 +27,6 @@ gradient bars and layout, with a customizable title.
 \dontrun{
 # Suppose stab_model is a stabsel object from your analysis
 plot_results(stab_model)
-plot_results(stab_model, main_title = "HEE Selection Probabilities")
 }
 
 }

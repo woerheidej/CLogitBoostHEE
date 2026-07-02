@@ -25,7 +25,9 @@ CLogitBoostHEE(
   center = TRUE,
   flexible = TRUE,
   reduction_scaler = 1,
-  early_stopping = TRUE
+  early_stopping = TRUE,
+  only_boosting = FALSE,
+  boosting_interactions = NULL
 )
 }
 \arguments{
@@ -99,6 +101,12 @@ stability selection according to
 \item{early_stopping}{Logical indicating whether the offset model should
 be refined via early stopping. Can be disabled for high-dimensional
 data to reduce runtime (default \code{TRUE}).}
+
+\item{only_boosting}{Logical indicating whether only Boosting should be run.
+Used after the initial stabsel step (default \code{FALSE}).}
+
+\item{boosting_interactions}{List indicating which interactions should be included.
+Only meaningful if \code{only_boosting} is \code{TRUE}.}
 }
 \value{
 A \code{stabsel} object containing the selected variables and their

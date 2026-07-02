@@ -6,7 +6,7 @@
 \usage{
 detect_singular_cols(
   data_proc,
-  exposure,
+  exposure = NULL,
   response,
   outcome,
   strata,

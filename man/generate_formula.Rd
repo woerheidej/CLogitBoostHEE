@@ -17,7 +17,8 @@ generate_formula(
   intercept = FALSE,
   center = TRUE,
   flexible = TRUE,
-  singular = NULL
+  singular = NULL,
+  boosting_interactions = NULL
 )
 }
 \arguments{

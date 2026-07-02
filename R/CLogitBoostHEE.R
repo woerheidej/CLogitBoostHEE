@@ -108,6 +108,7 @@
 #' @import mboost
 #' @import stabs
 #' @import RhpcBLASctl
+#' @import peakRAM
 #'
 #' @export
 
@@ -135,24 +136,17 @@ CLogitBoostHEE <- function(data,
                            only_boosting = FALSE,
                            boosting_interactions = NULL) {
 
-  # Progress helper ------------------------------------------------------------
+  # Progress helper
   msg <- function(...) {
     cat(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "|", ..., "\n")
     flush.console()
   }
 
-  # Approximate R memory helper ------------------------------------------------
-  mem_msg <- function(label = "Memory check") {
-    gc_out <- gc()
-    mem_mb <- round(sum(gc_out[, "used"]), 1)
-    msg(label, "| approximate R memory units used:", mem_mb)
-  }
 
   msg("CLogitBoostHEE started")
   msg("Rows:", nrow(data), "| Columns:", ncol(data))
   msg("Exposure:", exposure, "| Outcome:", outcome, "| Strata:", strata)
   msg("n_cores:", n_cores, "| B:", B, "| mstop:", mstop, "| nu:", nu)
-  mem_msg("Initial memory check")
 
   if(!only_boosting){ # Stability selection parameter check:
     provided <- c(
@@ -217,7 +211,7 @@ CLogitBoostHEE <- function(data,
 
   t_offset <- Sys.time()
 
-  offset.cv <- gen_offset_model(
+  peakRAM(offset.cv <- gen_offset_model(
     data = data,
     formula = offset_formula$form,
     mstop = mstop,
@@ -225,14 +219,13 @@ CLogitBoostHEE <- function(data,
     strata = strata,
     n_cores = n_cores,
     early_stopping = early_stopping
-  )
+  ))
 
   msg(
     "Offset/CV model finished in",
     round(difftime(Sys.time(), t_offset, units = "mins"), 2),
     "minutes"
   )
-  mem_msg("After offset/CV model")
 
   if(only_boosting){
     msg("only_boosting = TRUE, returning boosting model")
@@ -325,7 +318,6 @@ CLogitBoostHEE <- function(data,
     round(difftime(Sys.time(), t_initial, units = "mins"), 2),
     "minutes"
   )
-  mem_msg("After initial main boosting model")
 
   stabsel_args <- list(
     initial_model,
@@ -373,7 +365,6 @@ CLogitBoostHEE <- function(data,
   }
 
   msg("Starting stability selection via stabsel")
-  mem_msg("Before stabsel")
 
   t_stabsel <- Sys.time()
 
@@ -398,7 +389,6 @@ CLogitBoostHEE <- function(data,
     round(difftime(Sys.time(), t_stabsel, units = "mins"), 2),
     "minutes"
   )
-  mem_msg("After stabsel")
 
   if (is.null(stabsel_model)) {
     msg("stabsel_model is NULL. Returning NULL.")
