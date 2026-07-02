@@ -34,7 +34,7 @@ sim_results <- CLogitBoostHEE(
   sampling_type = "SS",
   assumption = "r-concave",
   n_cores = 1
-))
+)
 
 plot_results(sim_results,
      main = "Results of Stability Selection")
