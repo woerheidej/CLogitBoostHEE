@@ -178,8 +178,6 @@ CLogitBoostHEE <- function(data,
   msg("Detected categorical variables:", length(cat_vars))
 
   # Preprocess data
-  msg("Starting preprocessing.")
-
   data[cat_vars] <- lapply(data[cat_vars], factor)
 
   if(!only_boosting){
@@ -234,8 +232,6 @@ CLogitBoostHEE <- function(data,
   offset_pred <- predict(offset.cv, type = "link")
 
   # Create stratified folds
-  msg("Creating stratified folds")
-
   strata_vec <- data[[strata]]
   folds <- matrix(0, ncol = B, nrow = nrow(data))
 
@@ -243,8 +239,6 @@ CLogitBoostHEE <- function(data,
     smp <- sample(unique(strata_vec), floor(length(unique(strata_vec)) / 2))
     folds[strata_vec %in% smp, j] <- 1
   }
-
-  msg("Starting singularity detection")
 
   singularity <- detect_singular_cols(
     data = data,
@@ -278,8 +272,6 @@ CLogitBoostHEE <- function(data,
   }
 
   # Main formula
-  msg("Generating main formula with interactions")
-
   main_formula <- generate_formula(
     data = data,
     exposure = exposure,
@@ -333,8 +325,6 @@ CLogitBoostHEE <- function(data,
     stabsel_args$PFER   <- PFER
   if (!is.null(cutoff))
     stabsel_args$cutoff <- cutoff
-
-  msg("Stability selection arguments prepared")
 
   RhpcBLASctl::blas_set_num_threads(1)
 
