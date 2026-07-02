@@ -112,57 +112,89 @@
 #' @export
 
 CLogitBoostHEE <- function(data,
-                              exposure = NULL,
-                              strata = "strata",
-                              outcome = "y",
-                              matching = NULL,
-                              q = NULL,
-                              PFER = NULL,
-                              cutoff = NULL,
-                              nu = 1,
-                              mstop = 2000,
-                              B = 50,
-                              sampling_type = "SS",
-                              assumption = "r-concave",
-                              n_cores = 1,
-                              df_bols = 1,
-                              df_bbs = 1,
-                              intercept = FALSE,
-                              center = TRUE,
-                              flexible = TRUE,
-                              reduction_scaler = 1,
-                              early_stopping = TRUE,
-                              only_boosting = FALSE,
-                              boosting_interactions = NULL) {
+                           exposure = NULL,
+                           strata = "strata",
+                           outcome = "y",
+                           matching = NULL,
+                           q = NULL,
+                           PFER = NULL,
+                           cutoff = NULL,
+                           nu = 1,
+                           mstop = 2000,
+                           B = 50,
+                           sampling_type = "SS",
+                           assumption = "r-concave",
+                           n_cores = 1,
+                           df_bols = 1,
+                           df_bbs = 1,
+                           intercept = FALSE,
+                           center = TRUE,
+                           flexible = TRUE,
+                           reduction_scaler = 1,
+                           early_stopping = TRUE,
+                           only_boosting = FALSE,
+                           boosting_interactions = NULL) {
+
+  # Progress helper ------------------------------------------------------------
+  msg <- function(...) {
+    cat(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "|", ..., "\n")
+    flush.console()
+  }
+
+  # Approximate R memory helper ------------------------------------------------
+  mem_msg <- function(label = "Memory check") {
+    gc_out <- gc()
+    mem_mb <- round(sum(gc_out[, "used"]), 1)
+    msg(label, "| approximate R memory units used:", mem_mb)
+  }
+
+  msg("CLogitBoostHEE started")
+  msg("Rows:", nrow(data), "| Columns:", ncol(data))
+  msg("Exposure:", exposure, "| Outcome:", outcome, "| Strata:", strata)
+  msg("n_cores:", n_cores, "| B:", B, "| mstop:", mstop, "| nu:", nu)
+  mem_msg("Initial memory check")
 
   if(!only_boosting){ # Stability selection parameter check:
-  provided <- c(
-    q = !is.null(q),
-    PFER = !is.null(PFER),
-    cutoff = !is.null(cutoff)
-  )
-  n_provided <- sum(provided)
-  if (n_provided != 2) {
-    stop(
-      sprintf(
-        "Exactly two of 'q', 'PFER', and 'cutoff' must be specified, but you provided %d:\n  q = %s, PFER = %s, cutoff = %s",
-        n_provided,
-        ifelse(is.null(q), "NULL", q),
-        ifelse(is.null(PFER), "NULL", PFER),
-        ifelse(is.null(cutoff), "NULL", cutoff)
-      ),
-      call. = FALSE
+    provided <- c(
+      q = !is.null(q),
+      PFER = !is.null(PFER),
+      cutoff = !is.null(cutoff)
     )
-  }}
+    n_provided <- sum(provided)
+    if (n_provided != 2) {
+      stop(
+        sprintf(
+          "Exactly two of 'q', 'PFER', and 'cutoff' must be specified, but you provided %d:\n  q = %s, PFER = %s, cutoff = %s",
+          n_provided,
+          ifelse(is.null(q), "NULL", q),
+          ifelse(is.null(PFER), "NULL", PFER),
+          ifelse(is.null(cutoff), "NULL", cutoff)
+        ),
+        call. = FALSE
+      )
+    }
+  }
+
 
   # Detect variable types
   vars_info <- detect_continuous(data, exclude = c(strata, outcome))
   cont_vars <- vars_info$cont_vars
   cat_vars  <- vars_info$cat_vars
 
+  msg("Detected continuous variables:", length(cont_vars))
+  msg("Detected categorical variables:", length(cat_vars))
+
   # Preprocess data
+  msg("Starting preprocessing.")
+
   data[cat_vars] <- lapply(data[cat_vars], factor)
-  if(!only_boosting){data[cont_vars] <- scale(data[cont_vars])} else{data[cont_vars] <- scale(data[cont_vars], scale = FALSE)}
+
+  if(!only_boosting){
+    data[cont_vars] <- scale(data[cont_vars])
+  } else{
+    data[cont_vars] <- scale(data[cont_vars], scale = FALSE)
+  }
+
   # Create response variable:
   data$resp <- cbind(data[[outcome]], data[[strata]])
 
@@ -180,6 +212,11 @@ CLogitBoostHEE <- function(data,
     include_interactions = FALSE,
     boosting_interactions = boosting_interactions
   )
+
+  msg("Starting offset/CV model via gen_offset_model")
+
+  t_offset <- Sys.time()
+
   offset.cv <- gen_offset_model(
     data = data,
     formula = offset_formula$form,
@@ -189,18 +226,33 @@ CLogitBoostHEE <- function(data,
     n_cores = n_cores,
     early_stopping = early_stopping
   )
+
+  msg(
+    "Offset/CV model finished in",
+    round(difftime(Sys.time(), t_offset, units = "mins"), 2),
+    "minutes"
+  )
+  mem_msg("After offset/CV model")
+
   if(only_boosting){
+    msg("only_boosting = TRUE, returning boosting model")
     return(offset.cv)
   }
+
   offset_pred <- predict(offset.cv, type = "link")
 
   # Create stratified folds
+  msg("Creating stratified folds")
+
   strata_vec <- data[[strata]]
   folds <- matrix(0, ncol = B, nrow = nrow(data))
+
   for (j in 1:B) {
     smp <- sample(unique(strata_vec), floor(length(unique(strata_vec)) / 2))
     folds[strata_vec %in% smp, j] <- 1
   }
+
+  msg("Starting singularity detection")
 
   singularity <- detect_singular_cols(
     data = data,
@@ -210,6 +262,7 @@ CLogitBoostHEE <- function(data,
     strata = strata,
     folds = folds
   )
+
   singular_cols <- names(singularity[singularity > 0])
 
   if (length(singular_cols) > 0) {
@@ -228,11 +281,13 @@ CLogitBoostHEE <- function(data,
       call. = FALSE
     )
 
+  } else {
+    msg("No singular columns detected")
   }
 
-
-
   # Main formula
+  msg("Generating main formula with interactions")
+
   main_formula <- generate_formula(
     data = data,
     exposure = exposure,
@@ -247,11 +302,16 @@ CLogitBoostHEE <- function(data,
     include_interactions = TRUE
   )
 
-
   # The start of stability selection part:
   mstop_reduced <- q * 10 * (1 / nu) * reduction_scaler # reduce to gain efficiency in computation
 
+  msg("mstop_reduced for stabsel:", mstop_reduced)
+
   # Fit initial boosting model
+  msg("Starting initial main boosting model")
+
+  t_initial <- Sys.time()
+
   initial_model <- gamboost(
     main_formula$form,
     data = data,
@@ -259,6 +319,13 @@ CLogitBoostHEE <- function(data,
     control = boost_control(mstop = mstop_reduced, nu = nu),
     offset = offset_pred
   )
+
+  msg(
+    "Initial main boosting model finished in",
+    round(difftime(Sys.time(), t_initial, units = "mins"), 2),
+    "minutes"
+  )
+  mem_msg("After initial main boosting model")
 
   stabsel_args <- list(
     initial_model,
@@ -276,14 +343,21 @@ CLogitBoostHEE <- function(data,
   if (!is.null(cutoff))
     stabsel_args$cutoff <- cutoff
 
+  msg("Stability selection arguments prepared")
+
   RhpcBLASctl::blas_set_num_threads(1)
 
   if (.Platform$OS.type == "windows" && n_cores > 1) {
+    msg("Windows detected")
+    msg("Starting PSOCK cluster with", n_cores, "workers")
+
     cores <- n_cores
 
     # Run with the chunk.size argument
     cl <- parallel::makeCluster(cores)
     on.exit(parallel::stopCluster(cl), add = TRUE)
+
+    msg("Cluster created")
 
     parallel::clusterEvalQ(cl, {
       library(mboost)
@@ -298,6 +372,11 @@ CLogitBoostHEE <- function(data,
     stabsel_args$papply   <- myApply
   }
 
+  msg("Starting stability selection via stabsel")
+  mem_msg("Before stabsel")
+
+  t_stabsel <- Sys.time()
+
   stabsel_model <- tryCatch({
     withCallingHandlers(
       do.call(stabsel, stabsel_args),
@@ -310,10 +389,24 @@ CLogitBoostHEE <- function(data,
     )
   }, error = function(e) {
     warning("Stability selection failed: ", conditionMessage(e), call. = FALSE)
+    msg("Stability selection failed with error:", conditionMessage(e))
     NULL
   })
 
+  msg(
+    "Stability selection call finished in",
+    round(difftime(Sys.time(), t_stabsel, units = "mins"), 2),
+    "minutes"
+  )
+  mem_msg("After stabsel")
+
+  if (is.null(stabsel_model)) {
+    msg("stabsel_model is NULL. Returning NULL.")
+    return(NULL)
+  }
+
   stabsel_model$call <- NULL
+  msg("CLogitBoostHEE finished successfully")
 
   return(stabsel_model)
 }
