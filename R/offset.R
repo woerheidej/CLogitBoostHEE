@@ -92,8 +92,11 @@ gen_offset_model <- function(data,
         )
       }
     }
+
     if (plot) {
+      png("cv_early_stopping.png", width = 1200, height = 800, res = 150)
       plot(cv_stopping, main = "CV Early Stopping")
+      dev.off()
     }
 
     # Return model refitted to optimal mstop
